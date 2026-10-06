@@ -125,8 +125,10 @@ public class StripePaymentProcessor implements PaymentProcessor {
     public void handleWebhookEvent(String type, StripeObject stripeObject, Map<String, String> metadata) {
         switch (type){
             case "checkout.session.completed" -> handleCheckoutSessionCompleted((Session)stripeObject,metadata);//one-time,on checkout completion
-            case "customer.subscription.updated" -> handleCustomerSubscriptionUpdated((Subscription)stripeObject);//when user cancels,upgrades or any updates
-            case "customer.subscription.deleted" -> handleCustomerSubscriptionDeleted((Subscription)stripeObject);//when subscription ends,revoke the access
+            case "customer.subscription.updated" ->
+                    handleCustomerSubscriptionUpdated((com.stripe.model.Subscription) stripeObject);
+            case "customer.subscription.deleted" ->
+                    handleCustomerSubscriptionDeleted((com.stripe.model.Subscription) stripeObject);
             case "invoice.paid" -> handleInvoicePaid((Invoice) stripeObject);//when invoice is paid
             case "invoice.payment_failed" -> handleInvoicePaymentFailed((Invoice) stripeObject);//when invoice is not paid ,mark as PAST_DUE
             default -> log.debug("Ignoring the event {}",type);
@@ -147,7 +149,7 @@ public class StripePaymentProcessor implements PaymentProcessor {
         if(subId==null) return;
 
         try{
-            Subscription subscription=Subscription.retrieve(subId);
+            com.stripe.model.Subscription subscription=com.stripe.model.Subscription.retrieve(subId);
             SubscriptionItem subscriptionItem=subscription.getItems().getData().get(0);
             Instant periodStart=toInstant(subscriptionItem.getCurrentPeriodStart());
             Instant periodEnd=toInstant(subscriptionItem.getCurrentPeriodEnd());
@@ -165,8 +167,8 @@ public class StripePaymentProcessor implements PaymentProcessor {
 
     }
 
-    private void handleCustomerSubscriptionDeleted(Subscription subscription) {
-        if(subscription==null){
+    private void handleCustomerSubscriptionDeleted(
+            com.stripe.model.Subscription subscription) {        if(subscription==null){
             log.error("subscription object was null");
             return;
         }
@@ -177,8 +179,8 @@ public class StripePaymentProcessor implements PaymentProcessor {
 
     }
 
-    private void handleCustomerSubscriptionUpdated(Subscription subscription) {
-        if(subscription==null){
+    private void handleCustomerSubscriptionUpdated(
+            com.stripe.model.Subscription subscription) {        if(subscription==null){
             log.error("subscription object was null inside handleCustomerSubscriptionUpdated ");
             return;
         }
