@@ -6,6 +6,8 @@ import com.lovable_clone_microservices.workspace_service.dto.member.InviteMember
 import com.lovable_clone_microservices.workspace_service.dto.member.MemberResponse;
 import com.lovable_clone_microservices.workspace_service.dto.member.updateRoleRequest;
 import com.lovable_clone_microservices.workspace_service.entity.Project;
+import com.lovable_clone_microservices.workspace_service.entity.ProjectMember;
+import com.lovable_clone_microservices.workspace_service.entity.ProjectMemberId;
 import com.lovable_clone_microservices.workspace_service.mapper.ProjectMemberMapper;
 import com.lovable_clone_microservices.workspace_service.repository.ProjectMemberRepository;
 import com.lovable_clone_microservices.workspace_service.repository.ProjectRepository;
@@ -29,7 +31,6 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     ProjectMemberRepository projectMemberRepository;
     ProjectRepository projectRepository;
     ProjectMemberMapper projectMemberMapper;
-    UserRepository userRepository;
     AuthUtil authUtil;
 
     @Override
@@ -56,7 +57,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
         if(projectMemberRepository.existsById(projectMemberId))
             throw new RuntimeException("you are not allowed to invite multiple times");
 
-        ProjectMember member=ProjectMember.builder().projectMemberId(projectMemberId).projectMemberRole(request.role()) .invitedAt(Instant.now()).project(project).build();
+        ProjectMember member=ProjectMember.builder().projectMemberId(projectMemberId).projectMemberRole(request.role()).invitedAt(Instant.now()).project(project).build();
 
         projectMemberRepository.save(member);
         return projectMemberMapper.toMemberResponseFromMember(member);

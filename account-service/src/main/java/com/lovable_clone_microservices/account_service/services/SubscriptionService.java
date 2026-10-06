@@ -3,6 +3,7 @@ package com.lovable_clone_microservices.account_service.services;
 
 
 import com.lovable_clone_microservices.account_service.dto.subscription.SubscriptionResponse;
+import com.lovable_clone_microservices.common_library.dto.PlanDto;
 import com.lovable_clone_microservices.common_library.enums.SubscriptionStatus;
 
 import java.time.Instant;
@@ -20,4 +21,5 @@ public interface SubscriptionService {
 
     void markSubscriptionPastDue(String subscriptionId);
 
+    PlanDto getCurrentSubscribedPlanByUser();
 }

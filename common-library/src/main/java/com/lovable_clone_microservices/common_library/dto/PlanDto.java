@@ -1,0 +1,10 @@
+package com.lovable_clone_microservices.common_library.dto;
+
+public class PlanDto {
+    Long id;
+    String name;
+    Integer maxProjects;
+    Integer maxTokensPerDay;
+    Boolean unlimitedAi;
+    String  price;
+}

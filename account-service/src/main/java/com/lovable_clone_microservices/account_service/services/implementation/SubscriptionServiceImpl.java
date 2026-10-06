@@ -10,6 +10,7 @@ import com.lovable_clone_microservices.account_service.repository.PlanRepository
 import com.lovable_clone_microservices.account_service.repository.SubscriptionRespository;
 import com.lovable_clone_microservices.account_service.repository.UserRepository;
 import com.lovable_clone_microservices.account_service.services.SubscriptionService;
+import com.lovable_clone_microservices.common_library.dto.PlanDto;
 import com.lovable_clone_microservices.common_library.enums.SubscriptionStatus;
 import com.lovable_clone_microservices.common_library.error.ResourceNotFoundException;
 import com.lovable_clone_microservices.common_library.security.AuthUtil;
@@ -126,6 +127,10 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 * */
     }
 
+    @Override
+    public PlanDto getCurrentSubscribedPlanByUser() {
+        return null;
+    }
 
 
 

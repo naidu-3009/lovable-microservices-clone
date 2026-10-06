@@ -1,23 +1,21 @@
 package com.lovable_clone_microservices.workspace_service.service.impl;
 
-import com.projectlove.lovable_clone.Services.ProjectService;
-import com.projectlove.lovable_clone.Services.ProjectTemplateService;
-import com.projectlove.lovable_clone.Services.SubscriptionService;
-import com.projectlove.lovable_clone.dto.projects.ProjectRequest;
-import com.projectlove.lovable_clone.dto.projects.ProjectResponse;
-import com.projectlove.lovable_clone.dto.projects.ProjectSummaryResponse;
-import com.projectlove.lovable_clone.entity.Project;
-import com.projectlove.lovable_clone.entity.ProjectMember;
-import com.projectlove.lovable_clone.entity.ProjectMemberId;
-import com.projectlove.lovable_clone.entity.User;
-import com.projectlove.lovable_clone.enums.ProjectMemberRole;
-import com.projectlove.lovable_clone.error.BadRequestException;
-import com.projectlove.lovable_clone.error.ResourceNotFoundException;
-import com.projectlove.lovable_clone.mapper.ProjectMapper;
-import com.projectlove.lovable_clone.repository.ProjectMemberRepository;
-import com.projectlove.lovable_clone.repository.ProjectRepository;
-import com.projectlove.lovable_clone.repository.UserRepository;
-import com.projectlove.lovable_clone.security.AuthUtil;
+
+import com.lovable_clone_microservices.common_library.enums.ProjectMemberRole;
+import com.lovable_clone_microservices.common_library.error.BadRequestException;
+import com.lovable_clone_microservices.common_library.error.ResourceNotFoundException;
+import com.lovable_clone_microservices.common_library.security.AuthUtil;
+import com.lovable_clone_microservices.workspace_service.dto.projects.ProjectRequest;
+import com.lovable_clone_microservices.workspace_service.dto.projects.ProjectResponse;
+import com.lovable_clone_microservices.workspace_service.dto.projects.ProjectSummaryResponse;
+import com.lovable_clone_microservices.workspace_service.entity.Project;
+import com.lovable_clone_microservices.workspace_service.entity.ProjectMember;
+import com.lovable_clone_microservices.workspace_service.entity.ProjectMemberId;
+import com.lovable_clone_microservices.workspace_service.mapper.ProjectMapper;
+import com.lovable_clone_microservices.workspace_service.repository.ProjectMemberRepository;
+import com.lovable_clone_microservices.workspace_service.repository.ProjectRepository;
+import com.lovable_clone_microservices.workspace_service.service.ProjectService;
+import com.lovable_clone_microservices.workspace_service.service.ProjectTemplateService;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -35,11 +33,9 @@ import java.util.List;
 @Transactional
 public class ProjectServiceImpl implements ProjectService {
     ProjectRepository projectRepository;
-    UserRepository userRepository;
     ProjectMapper projectMapper;
     ProjectMemberRepository projectMemberRepository;
     AuthUtil authUtil;
-    SubscriptionService subscriptionService;
     ProjectTemplateService projectTemplateService;
 
     @Override
@@ -73,7 +69,7 @@ public class ProjectServiceImpl implements ProjectService {
         Project project=Project.builder().name(request.name()).isPublic(false).build();
         project = projectRepository.save(project);
         ProjectMemberId projectMemberId=new ProjectMemberId(project.getId(),userId);
-        ProjectMember projectMember=ProjectMember.builder().projectMemberRole(ProjectMemberRole.OWNER).user(owner).acceptedAt(Instant.now()).invitedAt(Instant.now()).projectMemberId(projectMemberId).project(project).build();
+        ProjectMember projectMember= ProjectMember.builder().projectMemberRole(ProjectMemberRole.OWNER).acceptedAt(Instant.now()).invitedAt(Instant.now()).projectMemberId(projectMemberId).project(project).build();
          projectMemberRepository.save(projectMember);
          projectTemplateService.initializeProjectFromTemplate(project.getId());
 
