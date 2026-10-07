@@ -2,6 +2,7 @@ package com.lovable_clone_microservices.common_library.security;
 
 import com.lovable_clone_microservices.common_library.dto.UserDto;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -25,10 +26,11 @@ public class AuthUtil {
     @Value("${jwt.secret-key}")
     private  String jwtSecretKey;
 
-    public String generateAccessToken(UserDto user){
+    public String generateAccessToken(JwtUserPrincipal user){
         return Jwts.builder()
-                .subject(user.username())
-                .claim("userId",user.id().toString())
+                .subject(user.getUsername())
+                .claim("userId",user.userId().toString())
+                .claim("name",user.name())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis()+1000*60*100))
                 .signWith(getSecretKey(), SignatureAlgorithm.HS256)
@@ -58,9 +60,9 @@ public class AuthUtil {
     public JwtUserPrincipal verifyAccessToken(String token){
         Claims claims = Jwts.parser().verifyWith(getSecretKey()).build().parseSignedClaims(token).getPayload();
         Long userId = Long.parseLong(claims.get("userId", String.class));
-
+        String name = claims.get("name", String.class);
         String userName=claims.getSubject();
-        return new JwtUserPrincipal(userId.toString(),userName,null,new ArrayList<>());
+        return new JwtUserPrincipal(userId.toString(),userName,name,null,new ArrayList<>());
     }
 
 

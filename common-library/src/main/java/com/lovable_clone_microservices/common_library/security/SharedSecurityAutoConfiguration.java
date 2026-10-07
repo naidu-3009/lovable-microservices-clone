@@ -2,6 +2,7 @@ package com.lovable_clone_microservices.common_library.security;
 
 
 import feign.RequestInterceptor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.core.Authentication;
@@ -17,7 +18,7 @@ public class SharedSecurityAutoConfiguration {
     }
 
     @Bean
-    public JwtAuthFilter jwtAuthFilter(AuthUtil authUtil, HandlerExceptionResolver handlerExceptionResolver){
+    public JwtAuthFilter jwtAuthFilter(AuthUtil authUtil, @Qualifier("handlerExceptionResolver") HandlerExceptionResolver handlerExceptionResolver){
         return new JwtAuthFilter(authUtil,handlerExceptionResolver);
     }
 

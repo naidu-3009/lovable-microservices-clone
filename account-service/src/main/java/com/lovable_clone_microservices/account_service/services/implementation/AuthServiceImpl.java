@@ -19,6 +19,7 @@ import com.lovable_clone_microservices.account_service.services.AuthService;
 import com.lovable_clone_microservices.common_library.dto.UserDto;
 import com.lovable_clone_microservices.common_library.error.BadRequestException;
 import com.lovable_clone_microservices.common_library.security.AuthUtil;
+import com.lovable_clone_microservices.common_library.security.JwtUserPrincipal;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -27,6 +28,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
 
 
 @Service
@@ -50,8 +53,11 @@ public class AuthServiceImpl implements AuthService {
         user.setPassword(passwordEncoder.encode(request.password()));
         userRepository.save(user);
 
-        String token=authUtil.generateAccessToken(userMapper.toUserDto(user));
-        return new AuthResponse(token,userMapper.toUserProfileResponse(user));
+        JwtUserPrincipal jwtUserPrincipal = new JwtUserPrincipal(user.getId().toString(), user.getName(),
+                user.getUsername(), null,  new ArrayList<>());
+
+        String token=authUtil.generateAccessToken(jwtUserPrincipal);
+        return new AuthResponse(token,userMapper.toUserProfileResponse(jwtUserPrincipal));
 
         //we are getting username+password +name from user => using thse we are generating jwt and returning
         //it to the user btw we are sending userprofileresponse btw
@@ -65,8 +71,8 @@ public class AuthServiceImpl implements AuthService {
                 new UsernamePasswordAuthenticationToken(request.username(),request.password())
         );
 
-        User user=(User)authentication.getPrincipal();
-        String token=authUtil.generateAccessToken(userMapper.toUserDto(user));
+        JwtUserPrincipal user = (JwtUserPrincipal) authentication.getPrincipal();
+        String token=authUtil.generateAccessToken(user);
         return new AuthResponse(token,userMapper.toUserProfileResponse(user));
 
 

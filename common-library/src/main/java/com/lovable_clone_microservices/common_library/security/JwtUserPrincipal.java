@@ -11,6 +11,7 @@ import java.util.List;
 public record JwtUserPrincipal(
         String userId,
         String userName,
+        String name,
         String password,
         List<GrantedAuthority> authorities
 ) implements UserDetails {
