@@ -51,7 +51,7 @@ public class AuthServiceImpl implements AuthService {
         });
         User user=userMapper.toUserEntity(request);
         user.setPassword(passwordEncoder.encode(request.password()));
-        userRepository.save(user);
+        user =  userRepository.save(user);
 
         JwtUserPrincipal jwtUserPrincipal = new JwtUserPrincipal(user.getId().toString(), user.getName(),
                 user.getUsername(), null,  new ArrayList<>());
