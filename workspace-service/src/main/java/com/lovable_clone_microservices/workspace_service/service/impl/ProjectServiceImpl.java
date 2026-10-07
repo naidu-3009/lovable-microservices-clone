@@ -1,10 +1,12 @@
 package com.lovable_clone_microservices.workspace_service.service.impl;
 
 
+import com.lovable_clone_microservices.common_library.dto.PlanDto;
 import com.lovable_clone_microservices.common_library.enums.ProjectMemberRole;
 import com.lovable_clone_microservices.common_library.error.BadRequestException;
 import com.lovable_clone_microservices.common_library.error.ResourceNotFoundException;
 import com.lovable_clone_microservices.common_library.security.AuthUtil;
+import com.lovable_clone_microservices.workspace_service.client.AccountClient;
 import com.lovable_clone_microservices.workspace_service.dto.projects.ProjectRequest;
 import com.lovable_clone_microservices.workspace_service.dto.projects.ProjectResponse;
 import com.lovable_clone_microservices.workspace_service.dto.projects.ProjectSummaryResponse;
@@ -37,6 +39,7 @@ public class ProjectServiceImpl implements ProjectService {
     ProjectMemberRepository projectMemberRepository;
     AuthUtil authUtil;
     ProjectTemplateService projectTemplateService;
+    AccountClient accountClient;
 
     @Override
     public List<ProjectSummaryResponse> getUserProjects() {
@@ -57,15 +60,13 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
         public ProjectResponse createProject(ProjectRequest request) {
 
-        if(!subscriptionService.canCreateNewProject()){
+        if(!canCreateProject()){
             throw new BadRequestException("user cannot create a new project with current plan ,upgrade plan asap");
         }
 
 
         Long userId= authUtil.getCurrentUserId();
-        User owner=userRepository.findById(userId).orElseThrow(
-                ()->new ResourceNotFoundException("user id not found",userId.toString())
-        );
+
         Project project=Project.builder().name(request.name()).isPublic(false).build();
         project = projectRepository.save(project);
         ProjectMemberId projectMemberId=new ProjectMemberId(project.getId(),userId);
@@ -109,6 +110,19 @@ public class ProjectServiceImpl implements ProjectService {
     private ProjectRepository.ProjectWithRole getUserProjectWithRoleIdInternal(Long projectId){
         Long userId= authUtil.getCurrentUserId();
         return projectRepository.findAllAccessibleByUserIdWithRole(projectId,userId).orElseThrow(()-> new BadRequestException("Project Not found"));
+    }
+
+    private boolean canCreateProject() {
+        Long userId = authUtil.getCurrentUserId();
+        if (userId == null) {
+            return false;
+        }
+        PlanDto plan = accountClient.getCurrentSubscribedPlanByUser();
+
+        int maxAllowed = plan.getMaxProjects();
+        int ownedCount = projectMemberRepository.countProjectOwnedByUser(userId);
+
+        return ownedCount < maxAllowed;
     }
 
 }

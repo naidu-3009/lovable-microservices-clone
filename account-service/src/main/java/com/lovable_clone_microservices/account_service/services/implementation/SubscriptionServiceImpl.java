@@ -129,7 +129,10 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     public PlanDto getCurrentSubscribedPlanByUser() {
-        return null;
+
+        SubscriptionResponse subscriptionResponse =getCurrentSubscription();
+
+        return subscriptionResponse.plan();
     }
 
 

@@ -1,11 +1,12 @@
 package com.lovable_clone_microservices.workspace_service.service.impl;
 
-import com.projectlove.lovable_clone.Services.ProjectTemplateService;
-import com.projectlove.lovable_clone.entity.Project;
-import com.projectlove.lovable_clone.entity.ProjectFile;
-import com.projectlove.lovable_clone.error.ResourceNotFoundException;
-import com.projectlove.lovable_clone.repository.ProjectFileRepository;
-import com.projectlove.lovable_clone.repository.ProjectRepository;
+
+import com.lovable_clone_microservices.common_library.error.ResourceNotFoundException;
+import com.lovable_clone_microservices.workspace_service.entity.Project;
+import com.lovable_clone_microservices.workspace_service.entity.ProjectFile;
+import com.lovable_clone_microservices.workspace_service.repository.ProjectFileRepository;
+import com.lovable_clone_microservices.workspace_service.repository.ProjectRepository;
+import com.lovable_clone_microservices.workspace_service.service.ProjectTemplateService;
 import io.minio.*;
 import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;

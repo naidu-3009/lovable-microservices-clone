@@ -1,7 +1,11 @@
 package com.lovable_clone_microservices.workspace_service.service.impl;
 
 
+import com.lovable_clone_microservices.common_library.dto.PlanDto;
+import com.lovable_clone_microservices.common_library.dto.UserDto;
+import com.lovable_clone_microservices.common_library.error.ResourceNotFoundException;
 import com.lovable_clone_microservices.common_library.security.AuthUtil;
+import com.lovable_clone_microservices.workspace_service.client.AccountClient;
 import com.lovable_clone_microservices.workspace_service.dto.member.InviteMemberRequest;
 import com.lovable_clone_microservices.workspace_service.dto.member.MemberResponse;
 import com.lovable_clone_microservices.workspace_service.dto.member.updateRoleRequest;
@@ -32,6 +36,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     ProjectRepository projectRepository;
     ProjectMemberMapper projectMemberMapper;
     AuthUtil authUtil;
+    AccountClient accountClient;
 
     @Override
     @PreAuthorize("@security.canViewMembers(#projectId)")
@@ -48,12 +53,13 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
         Long userId= authUtil.getCurrentUserId();
         Project project = getUserProjectByIdInternal(projectId);
 
-        User invitee=userRepository.findByUsername(request.username()).orElseThrow();
-
-        if(invitee.getId().equals(userId))
+        UserDto invitee=accountClient.getUserByEmail(request.username()).orElseThrow(
+                ()->new ResourceNotFoundException("User",request.username())
+        );
+        if(invitee.id().equals(userId))
             throw new RuntimeException("you are not allowed to invite yourself");
 
-        ProjectMemberId projectMemberId=new ProjectMemberId(projectId,invitee.getId());
+        ProjectMemberId projectMemberId=new ProjectMemberId(projectId,invitee.id());
         if(projectMemberRepository.existsById(projectMemberId))
             throw new RuntimeException("you are not allowed to invite multiple times");
 
@@ -100,5 +106,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
         Project project= projectRepository.findAllAccessibleByUserId(projectId,userId).orElseThrow();
         return project;
     }
+
+
 
 }
