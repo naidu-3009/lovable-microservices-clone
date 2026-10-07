@@ -1,9 +1,11 @@
 package com.lovable_clone_microservices.workspace_service.controller;
 
 import com.lovable_clone_microservices.common_library.security.AuthUtil;
+import com.lovable_clone_microservices.workspace_service.dto.deploy.DeployResponse;
 import com.lovable_clone_microservices.workspace_service.dto.projects.ProjectRequest;
 import com.lovable_clone_microservices.workspace_service.dto.projects.ProjectResponse;
 import com.lovable_clone_microservices.workspace_service.dto.projects.ProjectSummaryResponse;
+import com.lovable_clone_microservices.workspace_service.service.DeploymentService;
 import com.lovable_clone_microservices.workspace_service.service.ProjectService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -21,7 +23,7 @@ import java.util.List;
 @FieldDefaults(makeFinal = true,level = AccessLevel.PRIVATE)
 public class ProjectController {
      ProjectService projectService;
-//     DeploymentService deploymentService;
+     DeploymentService deploymentService;
      AuthUtil authUtil;
 
     @GetMapping
@@ -54,9 +56,9 @@ public class ProjectController {
     }
 
 
-//    @PostMapping("/{id}/deploy")
-//    public ResponseEntity<DeployResponse> deployProject(@PathVariable Long id){
-//        return ResponseEntity.ok(deploymentService.deploy(id));
-//    }
+    @PostMapping("/{id}/deploy")
+    public ResponseEntity<DeployResponse> deployProject(@PathVariable Long id){
+        return ResponseEntity.ok(deploymentService.deploy(id));
+    }
 
 }
