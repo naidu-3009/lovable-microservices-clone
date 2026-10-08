@@ -3,6 +3,7 @@ package com.lovable_clone_microservices.workspace_service.service.impl;
 
 import com.lovable_clone_microservices.common_library.dto.PlanDto;
 import com.lovable_clone_microservices.common_library.enums.ProjectMemberRole;
+import com.lovable_clone_microservices.common_library.enums.ProjectPerimission;
 import com.lovable_clone_microservices.common_library.error.BadRequestException;
 import com.lovable_clone_microservices.common_library.error.ResourceNotFoundException;
 import com.lovable_clone_microservices.common_library.security.AuthUtil;
@@ -24,6 +25,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import  com.lovable_clone_microservices.workspace_service.security.SecurtiyExpressions;
+
 
 import java.time.Instant;
 import java.util.List;
@@ -40,6 +43,8 @@ public class ProjectServiceImpl implements ProjectService {
     AuthUtil authUtil;
     ProjectTemplateService projectTemplateService;
     AccountClient accountClient;
+    SecurtiyExpressions securityExpressions;
+
 
     @Override
     public List<ProjectSummaryResponse> getUserProjects() {
@@ -55,6 +60,11 @@ public class ProjectServiceImpl implements ProjectService {
 //        getUserProjectWithRoleIdInternal
         ProjectRepository.ProjectWithRole  projectWithRole = getUserProjectWithRoleIdInternal(projectId);
        return projectMapper.toProjectSummaryResponse(projectWithRole.getProject(),projectWithRole.getRole());
+    }
+
+    @Override
+    public boolean hasPermission(Long projectId, ProjectPerimission permission) {
+        return securityExpressions.hasPermission(projectId, permission);
     }
 
     @Override
