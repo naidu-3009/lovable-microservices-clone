@@ -1,4 +1,4 @@
-package entity;
+package com.lovable_clone_microservices.intelligence_service.entity;
 
 
 import jakarta.persistence.*;

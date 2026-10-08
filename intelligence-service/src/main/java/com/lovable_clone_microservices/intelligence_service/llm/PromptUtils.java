@@ -1,4 +1,4 @@
-package llm;
+package com.lovable_clone_microservices.intelligence_service.llm;
 
 import java.time.LocalDateTime;
 

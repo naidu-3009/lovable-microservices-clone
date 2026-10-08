@@ -1,18 +1,18 @@
-package service.impl;
+package com.lovable_clone_microservices.intelligence_service.service.impl;
 
 
-import client.AccountClient;
+import com.lovable_clone_microservices.intelligence_service.client.AccountClient;
 import com.lovable_clone_microservices.common_library.dto.PlanDto;
 import com.lovable_clone_microservices.common_library.security.AuthUtil;
-import entity.UsageLog;
+import com.lovable_clone_microservices.intelligence_service.entity.UsageLog;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-import repository.UsageLogRepository;
-import service.UsageService;
+import com.lovable_clone_microservices.intelligence_service.repository.UsageLogRepository;
+import com.lovable_clone_microservices.intelligence_service.service.UsageService;
 
 import java.time.LocalDate;
 

@@ -1,6 +1,6 @@
-package repository;
+package com.lovable_clone_microservices.intelligence_service.repository;
 
-import entity.UsageLog;
+import com.lovable_clone_microservices.intelligence_service.entity.UsageLog;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
