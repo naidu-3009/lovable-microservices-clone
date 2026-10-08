@@ -1,4 +1,4 @@
-package client;
+package com.lovable_clone_microservices.intelligence_service.client;
 
 
 import com.lovable_clone_microservices.common_library.dto.PlanDto;

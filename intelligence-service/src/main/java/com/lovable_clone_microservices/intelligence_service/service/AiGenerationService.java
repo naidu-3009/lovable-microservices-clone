@@ -1,6 +1,6 @@
-package service;
+package com.lovable_clone_microservices.intelligence_service.service;
 
-import dto.chat.StreamResponse;
+import com.lovable_clone_microservices.intelligence_service.dto.chat.StreamResponse;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 

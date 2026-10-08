@@ -1,10 +1,10 @@
-package llm.tools;
+package com.lovable_clone_microservices.intelligence_service.llm.tools;
 
 
 
 import com.lovable_clone_microservices.common_library.enums.ChatEventType;
-import entity.ChatEvent;
-import entity.ChatMessage;
+import com.lovable_clone_microservices.intelligence_service.entity.ChatEvent;
+import com.lovable_clone_microservices.intelligence_service.entity.ChatMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

@@ -1,22 +1,19 @@
-package service.impl;
+package com.lovable_clone_microservices.intelligence_service.service.impl;
 
 
-import client.WorkspaceClient;
+import com.lovable_clone_microservices.intelligence_service.client.WorkspaceClient;
 import com.lovable_clone_microservices.common_library.enums.ChatEventType;
 import com.lovable_clone_microservices.common_library.enums.MessageRole;
 import com.lovable_clone_microservices.common_library.security.AuthUtil;
-import com.lovable_clone_microservices.workspace_service.repository.ProjectRepository;
-import com.lovable_clone_microservices.workspace_service.service.impl.ProjectFileServiceImpl;
-import dto.chat.StreamResponse;
-import entity.ChatEvent;
-import entity.ChatMessage;
-import entity.ChatSession;
-import entity.ChatSessionId;
-import io.jsonwebtoken.security.MalformedKeyException;
-import llm.PromptUtils;
-import llm.advisors.FileTreeContextAdvisor;
-import llm.tools.CodeGenerationTools;
-import llm.tools.LlmResponseParser;
+import com.lovable_clone_microservices.intelligence_service.dto.chat.StreamResponse;
+import com.lovable_clone_microservices.intelligence_service.entity.ChatEvent;
+import com.lovable_clone_microservices.intelligence_service.entity.ChatMessage;
+import com.lovable_clone_microservices.intelligence_service.entity.ChatSession;
+import com.lovable_clone_microservices.intelligence_service.entity.ChatSessionId;
+import com.lovable_clone_microservices.intelligence_service.llm.PromptUtils;
+import com.lovable_clone_microservices.intelligence_service.llm.advisors.FileTreeContextAdvisor;
+import com.lovable_clone_microservices.intelligence_service.llm.tools.CodeGenerationTools;
+import com.lovable_clone_microservices.intelligence_service.llm.tools.LlmResponseParser;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -26,18 +23,15 @@ import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
-import reactor.core.scheduler.Schedulers;
-import repository.ChatEventRepository;
-import repository.ChatMessageRepository;
-import repository.ChatSessionRepository;
-import service.AiGenerationService;
-import service.UsageService;
+import com.lovable_clone_microservices.intelligence_service.repository.ChatEventRepository;
+import com.lovable_clone_microservices.intelligence_service.repository.ChatMessageRepository;
+import com.lovable_clone_microservices.intelligence_service.repository.ChatSessionRepository;
+import com.lovable_clone_microservices.intelligence_service.service.AiGenerationService;
+import com.lovable_clone_microservices.intelligence_service.service.UsageService;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 

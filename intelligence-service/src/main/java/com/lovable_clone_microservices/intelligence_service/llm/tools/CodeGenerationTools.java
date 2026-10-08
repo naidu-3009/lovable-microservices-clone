@@ -1,6 +1,6 @@
-package llm.tools;
+package com.lovable_clone_microservices.intelligence_service.llm.tools;
 
-import client.WorkspaceClient;
+import com.lovable_clone_microservices.intelligence_service.client.WorkspaceClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;

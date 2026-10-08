@@ -1,6 +1,6 @@
-package llm.advisors;
+package com.lovable_clone_microservices.intelligence_service.llm.advisors;
 
-import client.WorkspaceClient;
+import com.lovable_clone_microservices.intelligence_service.client.WorkspaceClient;
 import com.lovable_clone_microservices.common_library.dto.FileNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

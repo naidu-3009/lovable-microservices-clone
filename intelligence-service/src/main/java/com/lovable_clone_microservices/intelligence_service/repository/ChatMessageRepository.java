@@ -1,8 +1,8 @@
-package repository;
+package com.lovable_clone_microservices.intelligence_service.repository;
 
 
-import entity.ChatMessage;
-import entity.ChatSession;
+import com.lovable_clone_microservices.intelligence_service.entity.ChatMessage;
+import com.lovable_clone_microservices.intelligence_service.entity.ChatSession;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
