@@ -1,5 +1,7 @@
 package llm.advisors;
 
+import client.WorkspaceClient;
+import com.lovable_clone_microservices.common_library.dto.FileNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClientRequest;
@@ -23,8 +25,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class FileTreeContextAdvisor implements StreamAdvisor {
 
-//    private final ProjectFileService projectFileService;
-
+    private final WorkspaceClient workspaceClient;
 
     @Override
     public Flux<ChatClientResponse> adviseStream(ChatClientRequest request, StreamAdvisorChain streamAdvisorChain) {
@@ -58,7 +59,7 @@ public class FileTreeContextAdvisor implements StreamAdvisor {
         }
 
 
-        List<FileNode> fileTree=projectFileService.getFileTree(projectId).files();
+        List<FileNode> fileTree=workspaceClient.getFileTree(projectId).files();
         String fileTreeContext="\n\n ===========File Tree========\n"+fileTree.toString();
         finalAugmentedPrompt.add(new SystemMessage(fileTreeContext));
 

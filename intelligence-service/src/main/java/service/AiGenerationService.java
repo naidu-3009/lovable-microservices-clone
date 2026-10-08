@@ -1,6 +1,6 @@
 package service;
 
-import com.openai.core.http.StreamResponse;
+import dto.chat.StreamResponse;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 

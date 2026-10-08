@@ -1,12 +1,17 @@
 package service.impl;
 
 
+import client.WorkspaceClient;
+import com.lovable_clone_microservices.common_library.enums.ChatEventType;
+import com.lovable_clone_microservices.common_library.enums.MessageRole;
 import com.lovable_clone_microservices.common_library.security.AuthUtil;
 import com.lovable_clone_microservices.workspace_service.repository.ProjectRepository;
 import com.lovable_clone_microservices.workspace_service.service.impl.ProjectFileServiceImpl;
-import com.openai.services.blocking.admin.organization.UsageService;
 import dto.chat.StreamResponse;
+import entity.ChatEvent;
+import entity.ChatMessage;
 import entity.ChatSession;
+import entity.ChatSessionId;
 import io.jsonwebtoken.security.MalformedKeyException;
 import llm.PromptUtils;
 import llm.advisors.FileTreeContextAdvisor;
@@ -26,6 +31,7 @@ import repository.ChatEventRepository;
 import repository.ChatMessageRepository;
 import repository.ChatSessionRepository;
 import service.AiGenerationService;
+import service.UsageService;
 
 import java.util.List;
 import java.util.Map;
@@ -48,7 +54,8 @@ public class AiGenerationServiceImpl implements AiGenerationService {
    LlmResponseParser llmResponseParser;
    ChatMessageRepository chatMessageRepository;
    ChatEventRepository chatEventRepository;
-
+   UsageService usageService;
+   WorkspaceClient workspaceClient;
     //We could just append our system prompt with our filetreecontext like just append my systemprompt
     //with the file tree context with just like projectfileservice.getfiletree(projectid) and append like normal string
     //but the spring ai convention is that to add what ever you want to add in advisors only
@@ -69,7 +76,7 @@ public class AiGenerationServiceImpl implements AiGenerationService {
         );
 
         StringBuilder fullResponseBuffer=new StringBuilder();
-        CodeGenerationTools codeGenerationTools=new CodeGenerationTools(projectFileService,projectId);
+        CodeGenerationTools codeGenerationTools=new CodeGenerationTools(projectId,workspaceClient);
         AtomicReference<Long> startTime=new AtomicReference<Long>(System.currentTimeMillis());
         AtomicReference<Long> endTime=new AtomicReference<>(0L);
         AtomicReference<Usage> usageRef = new AtomicReference<Usage>();
@@ -163,7 +170,7 @@ public class AiGenerationServiceImpl implements AiGenerationService {
 
 private void finalizeChats(String userMessage, ChatSession chatSession, String fullText, Long duration, Usage usage){
 
-        Long projectId=chatSession.getChatSessionId().getProjectId();
+            Long projectId=chatSession.getChatSessionId().getProjectId();
     int promptTokens = 0;
     int completionTokens = 0;
     int totalTokens = 0;
@@ -175,7 +182,7 @@ private void finalizeChats(String userMessage, ChatSession chatSession, String f
         totalTokens = usage.getTotalTokens();
 
         usageService.recordTokenUsage(
-                chatSession.getUser().getId(),
+                chatSession.getChatSessionId().getUserId(),
                 totalTokens
         );
     }
@@ -217,12 +224,12 @@ private void finalizeChats(String userMessage, ChatSession chatSession, String f
     // Save generated files
     chatEventList.stream()
             .filter(e -> e.getType() == ChatEventType.FILE_EDIT)
-            .forEach(e ->
-                    projectFileService.saveFile(
-                            projectId,
-                            e.getFilePath(),
-                            e.getContent()
-                    )
+            .forEach(e ->{}
+//                    projectFileService.saveFile(
+//                            projectId,
+//                            e.getFilePath(),
+//                            e.getContent()
+//                    )
             );
 
     chatEventRepository.saveAll(chatEventList);
@@ -233,9 +240,7 @@ private void finalizeChats(String userMessage, ChatSession chatSession, String f
         ChatSessionId chatSessionId=new ChatSessionId(projectId,userId);
         ChatSession chatSession=chatSessionRepository.findById(chatSessionId).orElse(null);
         if(chatSession==null){
-            Project project=projectRepository.findById(projectId).orElseThrow(()->new ResourceNotFoundException("project",projectId.toString()));
-            User user=userRepository.findById(userId).orElseThrow(()->new ResourceNotFoundException("user",userId.toString()));
-            ChatSession freshChatSession=ChatSession.builder().project(project).user(user).chatSessionId(chatSessionId).build();
+            ChatSession freshChatSession=ChatSession.builder().chatSessionId(chatSessionId).build();
             chatSessionRepository.save(freshChatSession);
             return freshChatSession;
         }

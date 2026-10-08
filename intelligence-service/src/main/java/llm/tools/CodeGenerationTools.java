@@ -1,5 +1,6 @@
 package llm.tools;
 
+import client.WorkspaceClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
@@ -13,6 +14,7 @@ import java.util.List;
 @Slf4j
 public class CodeGenerationTools {
     private final Long projectId;
+    private final WorkspaceClient workspaceClient;
 
     @Tool(name = "read_files",
             description = "Read the content of files. Only input the file names present inside the FILE_TREE. DO NOT input any path which is not present under the FILE_TREE.")
@@ -28,7 +30,7 @@ public class CodeGenerationTools {
 
             log.info("Requested file: {}", cleanPath);
 
-            String content = projectFileService.getFileContent(projectId, cleanPath).content();
+            String content = workspaceClient.getFileContent(projectId, cleanPath);
 
             result.add(String.format(
                     "--- START OF FILE: %s ---\n%s\n--- END OF FILE ---",
