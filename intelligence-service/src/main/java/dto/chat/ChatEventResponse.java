@@ -1,6 +1,6 @@
 package dto.chat;
 
-import com.projectlove.lovable_clone.enums.ChatEventType;
+import com.lovable_clone_microservices.common_library.enums.ChatEventType;
 import jakarta.persistence.Id;
 
 public record ChatEventResponse(@Id

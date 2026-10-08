@@ -1,6 +1,7 @@
 package dto.chat;
 
-import com.projectlove.lovable_clone.enums.MessageRole;
+
+import com.lovable_clone_microservices.common_library.enums.MessageRole;
 
 import java.time.Instant;
 import java.util.List;

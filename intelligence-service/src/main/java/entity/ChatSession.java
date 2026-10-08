@@ -17,10 +17,8 @@ import java.time.Instant;
 @NoArgsConstructor
 @Builder
 public class ChatSession {
-
     @EmbeddedId
     private ChatSessionId chatSessionId;
-
 
     @CreationTimestamp
     @Column(nullable = false,updatable = false)
@@ -28,6 +26,5 @@ public class ChatSession {
 
     @UpdateTimestamp
     Instant updatedAt;
-
     Instant deletedAt;
 }

@@ -30,7 +30,7 @@ public class ChatEvent {
 //    @Column(nullable = false)
     @Column(name = "chat_event_type", nullable = false)
 
-    ChatEventType type;
+        ChatEventType type;
 
     @Column(nullable = false)
     Integer sequenceOrder;
