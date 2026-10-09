@@ -43,6 +43,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         )).orElse(
                 new Subscription()
         );
+        System.out.println("SUBSCRIPTION FOUND = " + currentSubscription.getStatus());
         return subscriptionMapper.toSubscriptionResponse(currentSubscription);
     }
 

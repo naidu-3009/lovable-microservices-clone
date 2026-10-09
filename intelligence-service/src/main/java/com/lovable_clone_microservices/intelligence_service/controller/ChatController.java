@@ -20,12 +20,13 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("/intelligence")
 @FieldDefaults(makeFinal = true,level = AccessLevel.PRIVATE)
 public class ChatController {
     AiGenerationService aiGenerationService;
     ChatService chatService;
 
-    @PostMapping(value = "/api/chat/stream",produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/chat/stream",produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<StreamResponse>> streamChat(
             @RequestBody ChatRequest request
     ){
@@ -37,7 +38,7 @@ public class ChatController {
     }
 
 
-    @GetMapping("/api/chat/projects/{projectId}")
+    @GetMapping("/chat/projects/{projectId}")
     public ResponseEntity<List<ChatResponse>> getChatHistory(
             @PathVariable Long projectId
     ){

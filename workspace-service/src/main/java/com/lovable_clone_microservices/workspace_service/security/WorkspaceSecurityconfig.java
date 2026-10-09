@@ -36,9 +36,4 @@ public class WorkspaceSecurityconfig {
 
         return httpSecurity.build();
     }
-
-
-
-
-
 }

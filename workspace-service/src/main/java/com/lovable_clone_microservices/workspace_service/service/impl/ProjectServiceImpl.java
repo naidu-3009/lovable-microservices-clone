@@ -17,6 +17,7 @@ import com.lovable_clone_microservices.workspace_service.entity.ProjectMemberId;
 import com.lovable_clone_microservices.workspace_service.mapper.ProjectMapper;
 import com.lovable_clone_microservices.workspace_service.repository.ProjectMemberRepository;
 import com.lovable_clone_microservices.workspace_service.repository.ProjectRepository;
+import com.lovable_clone_microservices.workspace_service.security.SecurityExpressions;
 import com.lovable_clone_microservices.workspace_service.service.ProjectService;
 import com.lovable_clone_microservices.workspace_service.service.ProjectTemplateService;
 import jakarta.transaction.Transactional;
@@ -25,7 +26,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
-import  com.lovable_clone_microservices.workspace_service.security.SecurtiyExpressions;
 
 
 import java.time.Instant;
@@ -43,7 +43,7 @@ public class ProjectServiceImpl implements ProjectService {
     AuthUtil authUtil;
     ProjectTemplateService projectTemplateService;
     AccountClient accountClient;
-    SecurtiyExpressions securityExpressions;
+    SecurityExpressions securityExpressions;
 
 
     @Override
