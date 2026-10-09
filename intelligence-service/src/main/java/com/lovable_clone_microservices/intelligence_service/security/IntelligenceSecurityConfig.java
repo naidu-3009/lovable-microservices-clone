@@ -11,6 +11,14 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import jakarta.servlet.DispatcherType;
+
+
+
+
+
+
+
 @Configuration
 @RequiredArgsConstructor
 @EnableMethodSecurity
@@ -23,7 +31,11 @@ public class IntelligenceSecurityConfig{
                     .csrf( csrfConfig -> csrfConfig.disable())
                     .cors(Customizer.withDefaults())
                     .sessionManagement(sessionConfig->sessionConfig.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                    .authorizeHttpRequests(auth ->auth
+//                    .authorizeHttpRequests(auth ->auth
+//                            .anyRequest().authenticated()
+//                    )
+                    .authorizeHttpRequests(auth -> auth
+                            .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                             .anyRequest().authenticated()
                     )
                     .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

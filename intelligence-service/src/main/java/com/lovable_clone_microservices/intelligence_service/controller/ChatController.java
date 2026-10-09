@@ -20,7 +20,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/intelligence")
+//@RequestMapping("/intelligence")
 @FieldDefaults(makeFinal = true,level = AccessLevel.PRIVATE)
 public class ChatController {
     AiGenerationService aiGenerationService;
