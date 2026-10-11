@@ -91,6 +91,10 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                 ).stream()
                 .chatResponse()
                 .doOnNext(response -> {
+                    if (response.getResult() == null
+                            || response.getResult().getOutput() == null) {
+                        return;
+                    }
                     String content = response.getResult()
                             .getOutput()
                             .getText();
@@ -127,14 +131,23 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                                 error
                         )
                 )
+//                .map(response -> {
+//                    String text = response.getResult()
+//                            .getOutput()
+//                            .getText();
+//
+//                    return new StreamResponse(
+//                            text != null ? text : ""
+//                    );
+//                });
                 .map(response -> {
-                    String text = response.getResult()
-                            .getOutput()
-                            .getText();
+                    if (response.getResult() == null
+                            || response.getResult().getOutput() == null) {
+                        return new StreamResponse("");
+                    }
 
-                    return new StreamResponse(
-                            text != null ? text : ""
-                    );
+                    String text = response.getResult().getOutput().getText();
+                    return new StreamResponse(text != null ? text : "");
                 });
     }
 

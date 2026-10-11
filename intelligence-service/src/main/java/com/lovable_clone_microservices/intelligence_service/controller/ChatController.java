@@ -1,7 +1,6 @@
 package com.lovable_clone_microservices.intelligence_service.controller;
 
 
-
 import com.lovable_clone_microservices.intelligence_service.dto.chat.ChatRequest;
 import com.lovable_clone_microservices.intelligence_service.dto.chat.ChatResponse;
 import com.lovable_clone_microservices.intelligence_service.dto.chat.StreamResponse;
@@ -20,28 +19,29 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-//@RequestMapping("/intelligence")
-@FieldDefaults(makeFinal = true,level = AccessLevel.PRIVATE)
+@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+@RequestMapping("/chat")
+
 public class ChatController {
     AiGenerationService aiGenerationService;
     ChatService chatService;
 
-    @PostMapping(value = "/chat/stream",produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<StreamResponse>> streamChat(
             @RequestBody ChatRequest request
-    ){
-        return aiGenerationService.streamResponse(request.message(),request.projectId())
-                .map(data-> ServerSentEvent.<StreamResponse>builder()
+    ) {
+        return aiGenerationService.streamResponse(request.message(), request.projectId())
+                .map(data -> ServerSentEvent.<StreamResponse>builder()
                         .data(data)
                         .build());
 
     }
 
 
-    @GetMapping("/chat/projects/{projectId}")
+    @GetMapping("/projects/{projectId}")
     public ResponseEntity<List<ChatResponse>> getChatHistory(
             @PathVariable Long projectId
-    ){
+    ) {
         return ResponseEntity.ok(chatService.getProjectChatHistory(projectId));
 
     }
