@@ -1,10 +1,11 @@
 package com.lovable_clone_microservices.intelligence_service.service.impl;
 
 
-import com.lovable_clone_microservices.intelligence_service.client.WorkspaceClient;
 import com.lovable_clone_microservices.common_library.enums.ChatEventType;
 import com.lovable_clone_microservices.common_library.enums.MessageRole;
+import com.lovable_clone_microservices.common_library.event.FileStoreRequestEvent;
 import com.lovable_clone_microservices.common_library.security.AuthUtil;
+import com.lovable_clone_microservices.intelligence_service.client.WorkspaceClient;
 import com.lovable_clone_microservices.intelligence_service.dto.chat.StreamResponse;
 import com.lovable_clone_microservices.intelligence_service.entity.ChatEvent;
 import com.lovable_clone_microservices.intelligence_service.entity.ChatMessage;
@@ -14,20 +15,21 @@ import com.lovable_clone_microservices.intelligence_service.llm.PromptUtils;
 import com.lovable_clone_microservices.intelligence_service.llm.advisors.FileTreeContextAdvisor;
 import com.lovable_clone_microservices.intelligence_service.llm.tools.CodeGenerationTools;
 import com.lovable_clone_microservices.intelligence_service.llm.tools.LlmResponseParser;
+import com.lovable_clone_microservices.intelligence_service.repository.ChatEventRepository;
+import com.lovable_clone_microservices.intelligence_service.repository.ChatMessageRepository;
+import com.lovable_clone_microservices.intelligence_service.repository.ChatSessionRepository;
+import com.lovable_clone_microservices.intelligence_service.service.AiGenerationService;
+import com.lovable_clone_microservices.intelligence_service.service.UsageService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.metadata.Usage;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
-import com.lovable_clone_microservices.intelligence_service.repository.ChatEventRepository;
-import com.lovable_clone_microservices.intelligence_service.repository.ChatMessageRepository;
-import com.lovable_clone_microservices.intelligence_service.repository.ChatSessionRepository;
-import com.lovable_clone_microservices.intelligence_service.service.AiGenerationService;
-import com.lovable_clone_microservices.intelligence_service.service.UsageService;
 
 import java.util.List;
 import java.util.Map;
@@ -38,41 +40,42 @@ import java.util.regex.Pattern;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@FieldDefaults(makeFinal = true,level = AccessLevel.PRIVATE)
+@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class AiGenerationServiceImpl implements AiGenerationService {
 
-   ChatClient chatClient;
-   AuthUtil authUtil;
-   FileTreeContextAdvisor fileTreeContextAdvisor;
-   ChatSessionRepository chatSessionRepository;
-   LlmResponseParser llmResponseParser;
-   ChatMessageRepository chatMessageRepository;
-   ChatEventRepository chatEventRepository;
-   UsageService usageService;
-   WorkspaceClient workspaceClient;
+    static Pattern FILE_TAG_PATTERN = Pattern.compile("<file path=\"([^\"]+)\">(.*?)</file>", Pattern.DOTALL);
+    ChatClient chatClient;
+    AuthUtil authUtil;
+    FileTreeContextAdvisor fileTreeContextAdvisor;
+    ChatSessionRepository chatSessionRepository;
+    LlmResponseParser llmResponseParser;
+    ChatMessageRepository chatMessageRepository;
+    ChatEventRepository chatEventRepository;
+    UsageService usageService;
+    WorkspaceClient workspaceClient;
     //We could just append our system prompt with our filetreecontext like just append my systemprompt
     //with the file tree context with just like projectfileservice.getfiletree(projectid) and append like normal string
     //but the spring ai convention is that to add what ever you want to add in advisors only
     //if that thing is other than user or system prompt
-
-     static  Pattern FILE_TAG_PATTERN=  Pattern.compile("<file path=\"([^\"]+)\">(.*?)</file>",Pattern.DOTALL);
+    KafkaTemplate<String, Object> kafkaTemplate;
 
     @Override
-    @PreAuthorize("@security.canEditProject(#projectId)")//here if we want to pass the arguments from the below method call we use # telling use the parameters passed in below function
+    @PreAuthorize("@security.canEditProject(#projectId)")
+//here if we want to pass the arguments from the below method call we use # telling use the parameters passed in below function
     //as parameters
     public Flux<StreamResponse> streamResponse(String userPrompt, Long projectId) {
 //           usageService.checkDailyTokensUsage();
-            Long userId=authUtil.getCurrentUserId();
-           ChatSession chatSession= createChatSessionIfNotExists(projectId,userId);
-        Map<String,Object> advisorParams =Map.of(
-                "userId" ,userId,
-                "projectId",projectId
+        Long userId = authUtil.getCurrentUserId();
+        ChatSession chatSession = createChatSessionIfNotExists(projectId, userId);
+        Map<String, Object> advisorParams = Map.of(
+                "userId", userId,
+                "projectId", projectId
         );
 
-        StringBuilder fullResponseBuffer=new StringBuilder();
-        CodeGenerationTools codeGenerationTools=new CodeGenerationTools(projectId,workspaceClient);
-        AtomicReference<Long> startTime=new AtomicReference<Long>(System.currentTimeMillis());
-        AtomicReference<Long> endTime=new AtomicReference<>(0L);
+        StringBuilder fullResponseBuffer = new StringBuilder();
+        CodeGenerationTools codeGenerationTools = new CodeGenerationTools(projectId, workspaceClient);
+        AtomicReference<Long> startTime = new AtomicReference<Long>(System.currentTimeMillis());
+        AtomicReference<Long> endTime = new AtomicReference<>(0L);
         AtomicReference<Usage> usageRef = new AtomicReference<Usage>();
 
 
@@ -113,7 +116,8 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                             chatSession,
                             fullResponseBuffer.toString(),
                             duration,
-                            usageRef.get()
+                            usageRef.get(),
+                            userId
                     );
                 })
                 .doOnError(error ->
@@ -162,79 +166,78 @@ public class AiGenerationServiceImpl implements AiGenerationService {
 //}
 
 
-private void finalizeChats(String userMessage, ChatSession chatSession, String fullText, Long duration, Usage usage){
+    private void finalizeChats(String userMessage, ChatSession chatSession, String fullText, Long duration, Usage usage, Long userId) {
 
-            Long projectId=chatSession.getChatSessionId().getProjectId();
-    int promptTokens = 0;
-    int completionTokens = 0;
-    int totalTokens = 0;
+        Long projectId = chatSession.getChatSessionId().getProjectId();
+        int promptTokens = 0;
+        int completionTokens = 0;
+        int totalTokens = 0;
 
 
-    if(usage != null) {
-        promptTokens = usage.getPromptTokens();
-        completionTokens = usage.getCompletionTokens();
-        totalTokens = usage.getTotalTokens();
+        if (usage != null) {
+            promptTokens = usage.getPromptTokens();
+            completionTokens = usage.getCompletionTokens();
+            totalTokens = usage.getTotalTokens();
 
-        usageService.recordTokenUsage(
-                chatSession.getChatSessionId().getUserId(),
-                totalTokens
+            usageService.recordTokenUsage(
+                    chatSession.getChatSessionId().getUserId(),
+                    totalTokens
+            );
+        }
+        //saving the user message
+        ChatMessage userChatMessage = ChatMessage.builder()
+                .chatSession(chatSession)
+                .role(MessageRole.USER)
+                .content(userMessage)
+                .tokensUsed(promptTokens)
+                .build();
+
+        chatMessageRepository.save(userChatMessage);
+
+        // Save assistant message
+        ChatMessage assistantChatMessage = ChatMessage.builder()
+                .chatSession(chatSession)
+                .role(MessageRole.ASSISTANT)
+                .content(fullText)
+                .tokensUsed(completionTokens)
+                .build();
+        chatMessageRepository.save(assistantChatMessage);
+
+        // Parse AI response into events
+        List<ChatEvent> chatEventList =
+                llmResponseParser.parseChatEvents(
+                        fullText,
+                        assistantChatMessage
+                );
+
+        chatEventList.addFirst(
+                ChatEvent.builder()
+                        .type(ChatEventType.THOUGHT)
+                        .chatMessage(assistantChatMessage)
+                        .content("Thought for " + duration + "s")
+                        .sequenceOrder(0)
+                        .build()
         );
+
+        // Save generated files
+        chatEventList.stream()
+                .filter(e -> e.getType() == ChatEventType.FILE_EDIT)
+                .forEach(e -> {
+                    FileStoreRequestEvent fileStoreRequestEvent = new FileStoreRequestEvent(
+                            projectId, "", e.getFilePath(), e.getContent(), userId
+                    );
+                    kafkaTemplate.send("file-storage-event", "project-" + projectId, fileStoreRequestEvent);
+                });
+
+        chatEventRepository.saveAll(chatEventList);
     }
-   //saving the user message
-    ChatMessage userChatMessage = ChatMessage.builder()
-            .chatSession(chatSession)
-            .role(MessageRole.USER)
-            .content(userMessage)
-            .tokensUsed(promptTokens)
-            .build();
-
-    chatMessageRepository.save(userChatMessage);
-
-    // Save assistant message
-    ChatMessage assistantChatMessage = ChatMessage.builder()
-            .chatSession(chatSession)
-            .role(MessageRole.ASSISTANT)
-            .content(fullText)
-            .tokensUsed(completionTokens)
-            .build();
-    chatMessageRepository.save(assistantChatMessage);
-
-    // Parse AI response into events
-    List<ChatEvent> chatEventList =
-            llmResponseParser.parseChatEvents(
-                    fullText,
-                    assistantChatMessage
-            );
-
-    chatEventList.addFirst(
-            ChatEvent.builder()
-                    .type(ChatEventType.THOUGHT)
-                    .chatMessage(assistantChatMessage)
-                    .content("Thought for " + duration + "s")
-                    .sequenceOrder(0)
-                    .build()
-    );
-
-    // Save generated files
-    chatEventList.stream()
-            .filter(e -> e.getType() == ChatEventType.FILE_EDIT)
-            .forEach(e ->{}
-//                    projectFileService.saveFile(
-//                            projectId,
-//                            e.getFilePath(),
-//                            e.getContent()
-//                    )
-            );
-
-    chatEventRepository.saveAll(chatEventList);
-}
 
 
     private ChatSession createChatSessionIfNotExists(Long projectId, Long userId) {
-        ChatSessionId chatSessionId=new ChatSessionId(projectId,userId);
-        ChatSession chatSession=chatSessionRepository.findById(chatSessionId).orElse(null);
-        if(chatSession==null){
-            ChatSession freshChatSession=ChatSession.builder().chatSessionId(chatSessionId).build();
+        ChatSessionId chatSessionId = new ChatSessionId(projectId, userId);
+        ChatSession chatSession = chatSessionRepository.findById(chatSessionId).orElse(null);
+        if (chatSession == null) {
+            ChatSession freshChatSession = ChatSession.builder().chatSessionId(chatSessionId).build();
             chatSessionRepository.save(freshChatSession);
             return freshChatSession;
         }
