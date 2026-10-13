@@ -1,6 +1,7 @@
 package com.lovable_clone_microservices.intelligence_service.entity;
 
 
+import com.lovable_clone_microservices.common_library.enums.ChatEventStatus;
 import com.lovable_clone_microservices.common_library.enums.ChatEventType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -30,7 +31,7 @@ public class ChatEvent {
 //    @Column(nullable = false)
     @Column(name = "chat_event_type", nullable = false)
 
-        ChatEventType type;
+    ChatEventType type;
 
     @Column(nullable = false)
     Integer sequenceOrder;
@@ -41,5 +42,10 @@ public class ChatEvent {
     String metadata;
 
     String filePath;//null unless fileedit
+
+    String sagaId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    ChatEventStatus status;
 
 }

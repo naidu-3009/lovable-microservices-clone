@@ -1,6 +1,7 @@
 package com.lovable_clone_microservices.intelligence_service.service.impl;
 
 
+import com.lovable_clone_microservices.common_library.enums.ChatEventStatus;
 import com.lovable_clone_microservices.common_library.enums.ChatEventType;
 import com.lovable_clone_microservices.common_library.enums.MessageRole;
 import com.lovable_clone_microservices.common_library.event.FileStoreRequestEvent;
@@ -33,6 +34,7 @@ import reactor.core.publisher.Flux;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
@@ -53,18 +55,21 @@ public class AiGenerationServiceImpl implements AiGenerationService {
     ChatEventRepository chatEventRepository;
     UsageService usageService;
     WorkspaceClient workspaceClient;
+    KafkaTemplate<String, Object> kafkaTemplate;
+
+
     //We could just append our system prompt with our filetreecontext like just append my systemprompt
     //with the file tree context with just like projectfileservice.getfiletree(projectid) and append like normal string
     //but the spring ai convention is that to add what ever you want to add in advisors only
     //if that thing is other than user or system prompt
-    KafkaTemplate<String, Object> kafkaTemplate;
+
 
     @Override
     @PreAuthorize("@security.canEditProject(#projectId)")
 //here if we want to pass the arguments from the below method call we use # telling use the parameters passed in below function
     //as parameters
     public Flux<StreamResponse> streamResponse(String userPrompt, Long projectId) {
-//           usageService.checkDailyTokensUsage();
+//        usageService.checkDailyTokensUsage();
         Long userId = authUtil.getCurrentUserId();
         ChatSession chatSession = createChatSessionIfNotExists(projectId, userId);
         Map<String, Object> advisorParams = Map.of(
@@ -226,6 +231,7 @@ public class AiGenerationServiceImpl implements AiGenerationService {
         chatEventList.addFirst(
                 ChatEvent.builder()
                         .type(ChatEventType.THOUGHT)
+                        .status(ChatEventStatus.CONFIRMED)
                         .chatMessage(assistantChatMessage)
                         .content("Thought for " + duration + "s")
                         .sequenceOrder(0)
@@ -236,8 +242,10 @@ public class AiGenerationServiceImpl implements AiGenerationService {
         chatEventList.stream()
                 .filter(e -> e.getType() == ChatEventType.FILE_EDIT)
                 .forEach(e -> {
+                    String sagaId = UUID.randomUUID().toString();
+                    e.setSagaId(sagaId);
                     FileStoreRequestEvent fileStoreRequestEvent = new FileStoreRequestEvent(
-                            projectId, "", e.getFilePath(), e.getContent(), userId
+                            projectId, sagaId, e.getFilePath(), e.getContent(), userId
                     );
                     kafkaTemplate.send("file-storage-event", "project-" + projectId, fileStoreRequestEvent);
                 });

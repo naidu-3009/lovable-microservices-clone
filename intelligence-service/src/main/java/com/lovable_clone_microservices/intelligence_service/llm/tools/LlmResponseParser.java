@@ -1,7 +1,7 @@
 package com.lovable_clone_microservices.intelligence_service.llm.tools;
 
 
-
+import com.lovable_clone_microservices.common_library.enums.ChatEventStatus;
 import com.lovable_clone_microservices.common_library.enums.ChatEventType;
 import com.lovable_clone_microservices.intelligence_service.entity.ChatEvent;
 import com.lovable_clone_microservices.intelligence_service.entity.ChatMessage;
@@ -38,7 +38,7 @@ public class LlmResponseParser {
             "(path|args)=\"([^\"]+)\""
     );
 
-    public List<ChatEvent> parseChatEvents(String fullResponse, ChatMessage parentMessage){
+    public List<ChatEvent> parseChatEvents(String fullResponse, ChatMessage parentMessage) {
         List<ChatEvent> events = new ArrayList<>();
         int orderCounter = 1;
 
@@ -53,6 +53,7 @@ public class LlmResponseParser {
             Map<String, String> attrMap = extractAttributes(attributes);
 
             ChatEvent.ChatEventBuilder builder = ChatEvent.builder()
+                    .status(ChatEventStatus.CONFIRMED)
                     .chatMessage(parentMessage)
                     .content(content) // This is your Markdown content
                     .sequenceOrder(orderCounter++);
@@ -61,6 +62,7 @@ public class LlmResponseParser {
                 case "message" -> builder.type(ChatEventType.MESSAGE);
                 case "file" -> {
                     builder.type(ChatEventType.FILE_EDIT);
+                    builder.status(ChatEventStatus.PENDING);
                     builder.filePath(attrMap.get("path")); // Required for files
 //                    builder.content(null);
                 }
