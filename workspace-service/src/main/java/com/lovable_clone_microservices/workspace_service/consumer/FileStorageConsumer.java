@@ -28,7 +28,7 @@ public class FileStorageConsumer {
     @KafkaListener(topics = "file-storage-request-event", groupId = "workspace-group")
     public void consumeFileEvent(FileStoreRequestEvent requestEvent) {
 
-        // Idempotency check
+        // Idempotency checking
         if (processedEventRepository.existsById(requestEvent.sagaId())) {
             log.info("Duplicate Saga detected: {}. Resending previous ACK.", requestEvent.sagaId());
             sendResponse(requestEvent, true, null);

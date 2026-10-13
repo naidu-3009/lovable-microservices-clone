@@ -14,6 +14,7 @@ import com.lovable_clone_microservices.workspace_service.service.ProjectFileServ
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,8 +44,8 @@ public class ProjectFileServiceImpl implements ProjectFileService {
     @Override
     public FileTreeResponse getFileTree(Long projectId) {
 
-        List<ProjectFile>  projectFileList=projectFileRepository.findByProjectId(projectId);
-        List<FileNode> fileTreeList=projectFileMapper.toFileNode(projectFileList);
+        List<ProjectFile> projectFileList = projectFileRepository.findByProjectId(projectId);
+        List<FileNode> fileTreeList = projectFileMapper.toFileNode(projectFileList);
 
         return new FileTreeResponse(fileTreeList);
     }
@@ -68,16 +69,17 @@ public class ProjectFileServiceImpl implements ProjectFileService {
     }
 
     @Override
+    @Transactional
     public void saveFile(Long projectId, String filePath, String fileContent) {
-        log.info("saving the filepath{}",filePath);
+        log.info("saving the filepath{}", filePath);
         //we are saving our file metadata in our postgresdb and upload our file content to min io
-        Project project=projectRepository.findById(projectId).orElseThrow(
-                ()-> new ResourceNotFoundException("Project",projectId.toString())
+        Project project = projectRepository.findById(projectId).orElseThrow(
+                () -> new ResourceNotFoundException("Project", projectId.toString())
         );
 
 
-        String cleanPath=filePath.startsWith("/") ? filePath.substring(1):filePath;
-        String objectKey=projectId + "/" + cleanPath;
+        String cleanPath = filePath.startsWith("/") ? filePath.substring(1) : filePath;
+        String objectKey = projectId + "/" + cleanPath;
 
 
         try {
@@ -116,7 +118,8 @@ public class ProjectFileServiceImpl implements ProjectFileService {
     private String determineContentType(String filePath) {
         String type = URLConnection.guessContentTypeFromName(filePath);//we are asking java do you this file type if it fails we will find it manually from seeing the path
         if (type != null) return type;
-        if (filePath.endsWith(".jsx") || filePath.endsWith(".ts") || filePath.endsWith(".tsx")) return "text/javascript";
+        if (filePath.endsWith(".jsx") || filePath.endsWith(".ts") || filePath.endsWith(".tsx"))
+            return "text/javascript";
         if (filePath.endsWith(".json")) return "application/json";
         if (filePath.endsWith(".css")) return "text/css";
 
