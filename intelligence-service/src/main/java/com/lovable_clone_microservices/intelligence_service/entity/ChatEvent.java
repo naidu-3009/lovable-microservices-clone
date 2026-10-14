@@ -45,7 +45,7 @@ public class ChatEvent {
 
     String sagaId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @Enumerated(EnumType.STRING)
     ChatEventStatus status;
 
 }
