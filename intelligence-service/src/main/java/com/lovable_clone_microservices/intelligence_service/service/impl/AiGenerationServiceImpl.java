@@ -247,7 +247,7 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                     FileStoreRequestEvent fileStoreRequestEvent = new FileStoreRequestEvent(
                             projectId, sagaId, e.getFilePath(), e.getContent(), userId
                     );
-                    kafkaTemplate.send("file-storage-event", "project-" + projectId, fileStoreRequestEvent);
+                    kafkaTemplate.send("file-storage-request-event", "project-" + projectId, fileStoreRequestEvent);
                 });
 
         chatEventRepository.saveAll(chatEventList);
