@@ -9,7 +9,7 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.codingshuttle.distributed-lovable</groupId>
-    <artifactId>api-gateway</artifactId>
+    <artifactId>api-gtw</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>api-gtw</name>
     <description>API Gateway Service for Distributed Lovable Clone Project</description>
