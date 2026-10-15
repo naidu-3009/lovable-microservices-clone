@@ -4,13 +4,16 @@ import com.lovable_clone_microservices.workspace_service.dto.deploy.DeployRespon
 import com.lovable_clone_microservices.workspace_service.service.DeploymentService;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -18,41 +21,63 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class KubernetesDeploymentServiceImpl implements DeploymentService {
 
-    private final KubernetesClient client;
-    private final StringRedisTemplate redisTemplate;
-   private ByteArrayOutputStream output = new ByteArrayOutputStream();
-   private ByteArrayOutputStream error = new ByteArrayOutputStream();
 
-    private static final String NAMESPACE = "lovable-clone";
     private static final String POOL_LABEL = "status";
     private static final String PROJECT_LABEL = "project-id";
     private static final String IDLE = "idle";
     private static final String BUSY = "busy";
     private static final String SYNCER_CONTAINER = "syncer";
     private static final String RUNNER_CONTAINER = "runner";
-    private static final String REVERSE_PROXY_PORT = "8090";
+    private final KubernetesClient client;
+    private final StringRedisTemplate redisTemplate;
+    private ByteArrayOutputStream output = new ByteArrayOutputStream();
+    private ByteArrayOutputStream error = new ByteArrayOutputStream();
+    @Value("${app.preview.namespace}")
+    private String namespace;
+    @Value("${app.preview.domain}")
+    private String baseDomain;
+    @Value("${app.preview.proxy-port}")
+    private String proxyPort;
 
     @Override
     public DeployResponse deploy(Long projectId) {
-
-        String domain = "project-" + projectId + ".app.domain.com";
+        // Dynamically build the domain: project-123.app.domain.com
+        String domain = "project-" + projectId + "." + baseDomain;
+        // Use default port 80 format logic for clean URLs, or explicit ports for local testing
+        String formattedUrl = proxyPort.equals("80")
+                ? "http://" + domain
+                : "http://" + domain + ":" + proxyPort;
 
         Pod existingPod = findActivePod(projectId);
 
-        if(existingPod != null) {
-            execCommand(existingPod.getMetadata().getName(), SYNCER_CONTAINER, "mc", "mirror", "--overwrite",
-                    String.format("myminio/projectslovable/%d/react-vite-tailwind-daisyui-starter-main/", projectId),
-                    "/app/");
+        if (existingPod != null) {
+            log.info("Found existing pod {} for project {}. Resuming...", existingPod.getMetadata().getName(), projectId);
+//            execCommand(existingPod.getMetadata().getName(), SYNCER_CONTAINER, "mc", "mirror", "--overwrite",
+//                    String.format("myminio/projectslovable/%d/react-vite-tailwind-daisyui-starter-main/", projectId),
+//                    "/app/");
             registerRoute(domain, existingPod);
-            return new DeployResponse("http://"+domain+":"+REVERSE_PROXY_PORT);
+            return new DeployResponse(formattedUrl);
         }
 
-        return claimAndStartNewPod(projectId, domain);
+        return claimAndStartNewPod(projectId, domain, formattedUrl);
     }
 
-    private DeployResponse claimAndStartNewPod(Long projectId, String domain) {
+    Pod findActivePod(Long projectId) {
+        return client.pods().inNamespace(namespace)
+                .withLabel(PROJECT_LABEL, projectId.toString())
+                .withLabel(POOL_LABEL, BUSY) // Only find active/busy ones
+                .list().getItems().stream()
+                .filter(pod ->
+                        pod.getStatus() != null &&
+                                "Running".equals(pod.getStatus().getPhase())
+                ).findFirst()
+                .orElse(null);
+    }
 
-        Pod pod = client.pods().inNamespace(NAMESPACE)
+    //    pending
+    private DeployResponse claimAndStartNewPod(Long projectId, String domain, String formattedUrl) {
+
+        Pod pod = client.pods().inNamespace(namespace)
                 .withLabel(POOL_LABEL, IDLE)
                 .list().getItems().stream()
                 .findFirst()
@@ -61,7 +86,7 @@ public class KubernetesDeploymentServiceImpl implements DeploymentService {
         String podName = pod.getMetadata().getName();
         log.info("Claiming pod {} for project {}", podName, projectId);
 
-        client.pods().inNamespace(NAMESPACE).withName(podName).edit(p -> {
+        client.pods().inNamespace(namespace).withName(podName).edit(p -> {
             p.getMetadata().getLabels().put(POOL_LABEL, BUSY);
             p.getMetadata().getLabels().put(PROJECT_LABEL, projectId.toString());
             return p;
@@ -75,12 +100,11 @@ public class KubernetesDeploymentServiceImpl implements DeploymentService {
 //
 //            log.info("Starting initial sync for project {} in pod {}", projectId, podName);
 //            execCommand(podName, SYNCER_CONTAINER, "sh", "-c", initialSyncCmd);
-
             String src = String.format(
                     "myminio/projectslovable/%d/react-vite-tailwind-daisyui-starter-main/", projectId);
 
             log.info("Starting initial sync for project {} in pod {}", projectId, podName);
-            execCommand(podName, SYNCER_CONTAINER, "mc", "mirror", "--overwrite", src, "/app/");
+            execCommand(podName, SYNCER_CONTAINER, "mc", "mirror", "--overwrite", "--remove", src, "/app/");
 
 //            String watchCmd = String.format(
 //                    "nohup mc mirror --overwrite --watch myminio/projectslovable/%d/react-vite-tailwind-daisyui-starter-main/ /app/ > /app/sync.log 2>&1 &",
@@ -96,11 +120,8 @@ public class KubernetesDeploymentServiceImpl implements DeploymentService {
                     RUNNER_CONTAINER,
                     "sh", "-c", installCmd
             );
-
-
 //            String startCmd =
 //                    "cd /app && nohup npm run dev -- --host 0.0.0.0 --port 5173 > /app/dev.log 2>&1 &";
-
             String startCmd = "nohup pnpm run dev --host 0.0.0.0 --port 5173 > /app/dev.log 2>&1 &";
             log.info("Starting dev server for project {}...", projectId);
             execCommand(
@@ -109,15 +130,16 @@ public class KubernetesDeploymentServiceImpl implements DeploymentService {
                     "sh", "-c", startCmd
             );
 
-            registerRoute(domain, pod);
+            Pod updatedPod = client.pods().inNamespace(namespace).withName(podName).get();
+            registerRoute(domain, updatedPod);
 
-            log.info("Deployment successful: http://{}:{}", domain, REVERSE_PROXY_PORT);
-            return new DeployResponse("http://" + domain + ":" + REVERSE_PROXY_PORT);
+            log.info("Deployment successful: {}", formattedUrl);
+            return new DeployResponse(formattedUrl);
 
-        } catch(Exception e) {
+        } catch (Exception e) {
             log.error("Deployment failed for project {}. Releasing pod {}.", projectId, podName, e);
-            client.pods().inNamespace(NAMESPACE).withName(podName).delete();
-            throw new RuntimeException("Failed to deploy the project with id: "+projectId);
+            client.pods().inNamespace(namespace).withName(podName).delete();
+            throw new RuntimeException("Failed to deploy project " + projectId + ": " + e.getMessage(), e);
         }
     }
 
@@ -145,7 +167,6 @@ public class KubernetesDeploymentServiceImpl implements DeploymentService {
 //                6,
 //                TimeUnit.HOURS
 //        );
-
 
 
 //        log.info("Redis route write result: {}", result);
@@ -185,34 +206,40 @@ public class KubernetesDeploymentServiceImpl implements DeploymentService {
 //    }
 
     private void execCommand(String podName, String container, String... command) {
+        log.debug("Exec in {}:{} -> {}", podName, container, String.join(" ", command));
+
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ByteArrayOutputStream err = new ByteArrayOutputStream();
 
-        try (ExecWatch watch = client.pods().inNamespace(NAMESPACE).withName(podName)
+        CompletableFuture<String> data = new CompletableFuture<>();
+        try (ExecWatch ignored = client.pods().inNamespace(namespace).withName(podName)
                 .inContainer(container)
                 .writingOutput(out)
                 .writingError(err)
+                .usingListener(new ExecListener() {
+                    @Override
+                    public void onClose(int code, String reason) {
+                        data.complete("Done");
+                    }
+                })
                 .exec(command)) {
 
-            int code = watch.exitCode().get(5, TimeUnit.MINUTES);
+            if (command[command.length - 1].trim().endsWith("&")) {
+                Thread.sleep(500);
+            } else {
+                data.get(30, TimeUnit.SECONDS);
+            }
+
+
+            int code = ignored.exitCode().get(5, TimeUnit.MINUTES);
             log.info("Exec [{}] exit={} out={}", container, code, out);
             if (code != 0) {
                 throw new RuntimeException("Exit " + code + ": " + err);
             }
         } catch (Exception e) {
+            log.error("Exec failed", e);
             throw new RuntimeException("Pod Execution Failed: " + e.getMessage(), e);
         }
     }
-
-    Pod findActivePod(Long projectId) {
-        return client.pods().inNamespace(NAMESPACE)
-                .withLabel(PROJECT_LABEL, projectId.toString())
-                .withLabel(POOL_LABEL, BUSY) // Only find active/busy ones
-                .list().getItems().stream()
-                .filter(pod -> pod.getStatus().getPhase().equals("Running"))
-                .findFirst()
-                .orElse(null);
-    }
-
 
 }
