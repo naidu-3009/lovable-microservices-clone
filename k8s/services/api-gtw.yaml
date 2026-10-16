@@ -3,20 +3,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: api-gateway
+  name: api-gtw
   namespace: lovable-core
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: api-gateway
+      app: api-gtw
   template:
     metadata:
       labels:
-        app: api-gateway
+        app: api-gtw
     spec:
       containers:
-        - name: api-gateway
+        - name: api-gtw
           image: nishanthtalari/lovable-api-gtw:latest
           imagePullPolicy: Always
           ports:
