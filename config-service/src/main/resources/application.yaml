@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: config-service
+
+  cloud:
+    config.server.git:
+      uri: https://github.com/naidu-3009/lc-microservices-config-server
+      username: naidu-3009
+      password: ${GIT_PASSWORD}
+      default-label: main
+
+server.port: 8888
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  health:
+    config:
+      enabled: false
+
+---
+
+#The below is for K8 profile
+
+spring:
+  config:
+    activate:
+      on-profile: k8s
+
+  cloud:
+    discovery:
+      enabled: false
+    config.server.git:
+      uri: https://github.com/naidu-3009/lc-microservices-config-server
+      username: ${GIT_USERNAME}
+      password: ${GIT_PASSWORD}
+
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
