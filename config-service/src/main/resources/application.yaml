@@ -6,7 +6,7 @@ spring:
     config.server.git:
       uri: https://github.com/naidu-3009/lc-microservices-config-server
       username: naidu-3009
-      password: ${GIT_PAT}
+      password: ${GIT_PASSWORD}
       default-label: main
 
 server.port: 8888
