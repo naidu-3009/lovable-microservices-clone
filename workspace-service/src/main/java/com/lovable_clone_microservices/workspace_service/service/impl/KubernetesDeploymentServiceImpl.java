@@ -101,7 +101,8 @@ public class KubernetesDeploymentServiceImpl implements DeploymentService {
 //            log.info("Starting initial sync for project {} in pod {}", projectId, podName);
 //            execCommand(podName, SYNCER_CONTAINER, "sh", "-c", initialSyncCmd);
             String src = String.format(
-                    "myminio/projectslovable/%d/react-vite-tailwind-daisyui-starter-main/", projectId);
+//                    "myminio/projectslovable/%d/react-vite-tailwind-daisyui-starter-main/", projectId);
+                    "myminio/projectslovable/%d/", projectId);
 
             log.info("Starting initial sync for project {} in pod {}", projectId, podName);
             execCommand(podName, SYNCER_CONTAINER, "mc", "mirror", "--overwrite", "--remove", src, "/app/");
@@ -112,7 +113,9 @@ public class KubernetesDeploymentServiceImpl implements DeploymentService {
 //            execCommand(podName, SYNCER_CONTAINER, "sh", "-c", watchCmd);
 
             // Runner Commands
-            String installCmd = "cd /app && pnpm install --reporter=append-only";
+//            String installCmd = "cd /app && pnpm install --reporter=append-only";
+            String installCmd =
+                    "cd /app && pnpm install --store-dir=/root/.local/share/pnpm/store --reporter=append-only";
 
             log.info("Installing dependencies for project {}...", projectId);
             execCommand(
@@ -227,7 +230,8 @@ public class KubernetesDeploymentServiceImpl implements DeploymentService {
             if (command[command.length - 1].trim().endsWith("&")) {
                 Thread.sleep(500);
             } else {
-                data.get(30, TimeUnit.SECONDS);
+//                data.get(30, TimeUnit.SECONDS);
+                data.get(15, TimeUnit.MINUTES);
             }
 
 
