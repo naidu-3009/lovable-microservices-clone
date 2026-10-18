@@ -1,0 +1,13 @@
+{
+  "name":"lovable-clone-proxy",
+  "version":"1.0.0",
+  "description": "Proxy for Project previews",
+  "main": "index.js",
+  "dependencies": {
+    "http-proxy":"^1.18.1",
+    "ioredis":"^5.3.5"
+  },
+ "scripts": {
+    "start": "node index.js"
+ }
+}
