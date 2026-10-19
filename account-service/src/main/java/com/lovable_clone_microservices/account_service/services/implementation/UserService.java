@@ -14,7 +14,7 @@ import java.util.ArrayList;
 @RequiredArgsConstructor
 @Service
 public class UserService implements UserDetailsService {
-
+    //UserDetails service implementation is crucial for providing our user details for authentication purpose
     private final UserRepository userRepository;
 
     @Override
@@ -28,5 +28,6 @@ public class UserService implements UserDetailsService {
                 user.getName(),
                 user.getPassword(),
                 new ArrayList<>()
-        );    }
+        );
+    }
 }
