@@ -9,8 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { AuthLayout } from "@/components/AuthLayout";
 
 export function LoginModal() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+const [username, setUsername] = useState("");
+const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -18,19 +18,22 @@ export function LoginModal() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email || !password) {
-      toast({
-        title: "Missing credentials",
-        description: "Please enter both email and password",
-        variant: "destructive",
-      });
-      return;
-    }
+if (!username.trim() || !password) {
+  toast({
+    title: "Missing credentials",
+    description: "Please enter both username and password",
+    variant: "destructive",
+  });
+  return;
+}
 
     setIsLoading(true);
 
     try {
-      const response = await api.login({ username: email, password });
+            const response = await api.login({
+              username: username.trim(),
+              password,
+            });
       setAuthToken(response.token);
       if (response.user) {
         setUserInfo(response.user);
