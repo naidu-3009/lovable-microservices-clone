@@ -32,7 +32,7 @@ jobs:
 
       - name: Build and Install Common Library
         working-directory: ./common-library
-        run: ./mvnw clean install -DskipTests
+        run: bash ./mvnw clean install -DskipTests
 
       - name: Build and Push Docker Image with Jib
         working-directory: ./${{ env.SERVICE_NAME }}
