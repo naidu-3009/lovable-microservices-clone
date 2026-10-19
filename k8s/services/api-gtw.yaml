@@ -1,4 +1,4 @@
-# k8s/services/api-gateway.yaml
+# k8s/services/api-gtw.yaml
 
 apiVersion: apps/v1
 kind: Deployment
