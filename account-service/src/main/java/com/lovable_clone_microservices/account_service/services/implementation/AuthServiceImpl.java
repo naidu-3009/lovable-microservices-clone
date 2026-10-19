@@ -1,14 +1,6 @@
 package com.lovable_clone_microservices.account_service.services.implementation;
 
-//import com.projectlove.lovable_clone.Services.AuthService;
-//import com.projectlove.lovable_clone.dto.auth.AuthResponse;
-//import com.projectlove.lovable_clone.dto.auth.LoginRequest;
-//import com.projectlove.lovable_clone.dto.auth.SignUpRequest;
-//import com.projectlove.lovable_clone.entity.User;
-//import com.projectlove.lovable_clone.error.BadRequestException;
-//import com.projectlove.lovable_clone.mapper.UserMapper;
-//import com.projectlove.lovable_clone.repository.UserRepository;
-//import com.projectlove.lovable_clone.security.AuthUtil;
+
 import com.lovable_clone_microservices.account_service.dto.auth.AuthResponse;
 import com.lovable_clone_microservices.account_service.dto.auth.LoginRequest;
 import com.lovable_clone_microservices.account_service.dto.auth.SignUpRequest;
@@ -16,7 +8,6 @@ import com.lovable_clone_microservices.account_service.entity.User;
 import com.lovable_clone_microservices.account_service.mapper.UserMapper;
 import com.lovable_clone_microservices.account_service.repository.UserRepository;
 import com.lovable_clone_microservices.account_service.services.AuthService;
-import com.lovable_clone_microservices.common_library.dto.UserDto;
 import com.lovable_clone_microservices.common_library.error.BadRequestException;
 import com.lovable_clone_microservices.common_library.security.AuthUtil;
 import com.lovable_clone_microservices.common_library.security.JwtUserPrincipal;
@@ -34,7 +25,7 @@ import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
-@FieldDefaults(makeFinal = true,level = AccessLevel.PRIVATE)
+@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class AuthServiceImpl implements AuthService {
 
     UserRepository userRepository;
@@ -47,17 +38,17 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthResponse signup(SignUpRequest request) {
         userRepository.findByUsername(request.username()).ifPresent(user -> {
-            throw new BadRequestException("user already exists with user name:"+ request.username());
+            throw new BadRequestException("user already exists with user name:" + request.username());
         });
-        User user=userMapper.toUserEntity(request);
+        User user = userMapper.toUserEntity(request);
         user.setPassword(passwordEncoder.encode(request.password()));
-        user =  userRepository.save(user);
+        user = userRepository.save(user);
 
         JwtUserPrincipal jwtUserPrincipal = new JwtUserPrincipal(user.getId().toString(), user.getName(),
-                user.getUsername(), null,  new ArrayList<>());
+                user.getUsername(), null, new ArrayList<>());
 
-        String token=authUtil.generateAccessToken(jwtUserPrincipal);
-        return new AuthResponse(token,userMapper.toUserProfileResponse(jwtUserPrincipal));
+        String token = authUtil.generateAccessToken(jwtUserPrincipal);
+        return new AuthResponse(token, userMapper.toUserProfileResponse(jwtUserPrincipal));
 
         //we are getting username+password +name from user => using thse we are generating jwt and returning
         //it to the user btw we are sending userprofileresponse btw
@@ -67,13 +58,13 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse login(LoginRequest request) {
-        Authentication authentication=authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.username(),request.password())
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.username(), request.password())
         );
 
         JwtUserPrincipal user = (JwtUserPrincipal) authentication.getPrincipal();
-        String token=authUtil.generateAccessToken(user);
-        return new AuthResponse(token,userMapper.toUserProfileResponse(user));
+        String token = authUtil.generateAccessToken(user);
+        return new AuthResponse(token, userMapper.toUserProfileResponse(user));
 
 
     }
