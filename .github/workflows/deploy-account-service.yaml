@@ -6,7 +6,6 @@ on:
       - master
     paths:
       - 'account-service/**'
-
 env:
   SERVICE_NAME: account-service
   IMAGE_NAME: nishanthtalari/lovable-account-service
