@@ -15,8 +15,8 @@ public class CorsConfig {
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration corsConfig = new CorsConfiguration();
         corsConfig.setAllowedOrigins(Arrays.asList(
-                "http://builderflux.in",
-                "http://www.builderflux.in",
+                "http://ideastitch.in",
+                "http://www.ideastitch.in",
                 "http://localhost:5173"
         ));
         corsConfig.setMaxAge(3600L);
