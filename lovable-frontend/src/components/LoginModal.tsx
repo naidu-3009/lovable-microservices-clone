@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Loader2, Lock, Mail } from "lucide-react";
+import { Loader2, Lock, UserRound } from "lucide-react";
 import { api, setAuthToken, setUserInfo } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,21 +55,23 @@ if (!username.trim() || !password) {
   };
 
   return (
-    <AuthLayout title="Welcome back" description="Sign in to continue building with your project companion.">
+    <AuthLayout title="Welcome back" description="Sign in to continue building with IdeaStitch.">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium text-foreground">
-                Email
+              <Label htmlFor="username" className="text-sm font-medium text-foreground">
+                Username
               </Label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <UserRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                                    className="h-11 border-border/70 bg-muted/40 pl-10 text-sm"
+                  id="username"
+                  name="username"
+                  type="text"
+                  autoComplete="username"
+                  placeholder="your-username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="h-11 border-border/70 bg-muted/40 pl-10 text-sm"
                   disabled={isLoading}
                 />
               </div>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Loader2, Mail, User, Lock } from "lucide-react";
+import { Loader2, AtSign, User, Lock } from "lucide-react";
 import { api, setAuthToken, setUserInfo } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,20 +58,36 @@ export default function Signup() {
   return (
     <AuthLayout
       title="Create your workspace"
-      description="Start building products with a thoughtful AI collaborator."
+      description="Weave your ideas into reality with your AI collaborator."
     >
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-2">
-          <Label
-            htmlFor="username"
-            className="text-sm font-medium text-foreground"
-          >
+          <Label htmlFor="name" className="text-sm font-medium text-foreground">
+            Full name
+          </Label>
+          <div className="relative">
+            <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              id="name"
+              name="name"
+              type="text"
+              autoComplete="name"
+              placeholder="Your full name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="h-11 border-border/70 bg-muted/40 pl-10 text-sm"
+              disabled={isLoading}
+              required
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="username" className="text-sm font-medium text-foreground">
             Username
           </Label>
-
           <div className="relative">
-            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-
+            <AtSign className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               id="username"
               name="username"
@@ -82,24 +98,6 @@ export default function Signup() {
               onChange={(e) => setUsername(e.target.value)}
               className="h-11 border-border/70 bg-muted/40 pl-10 text-sm"
               disabled={isLoading}
-            />
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Label
-            htmlFor="email"
-            className="text-sm font-medium text-foreground"
-          >
-            Email
-          </Label>
-          <div className="relative">
-            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input
-              type="text"
-              name="username"
-              autoComplete="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
               required
             />
           </div>
