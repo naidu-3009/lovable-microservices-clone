@@ -148,12 +148,14 @@ export function ShareDialog({ projectId, trigger, open, onOpenChange }: ShareDia
                                 <div key={member.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
                                     <Avatar className="h-9 w-9">
                                         <AvatarFallback className="text-xs font-medium">
-                                            {member.name ? member.name.charAt(0).toUpperCase() : member.username.slice(0, 2).toUpperCase()}
+                                            {(member.name?.trim() || member.username?.trim() || `U${member.userId}`)
+                                                .slice(0, 2)
+                                                .toUpperCase()}
                                         </AvatarFallback>
                                     </Avatar>
                                     <div className="flex-1 min-w-0 text-sm">
-                                        <div className="font-medium truncate">{member.name || member.username}</div>
-                                        <div className="text-xs text-muted-foreground truncate">{member.username}</div>
+                                        <div className="font-medium truncate">{member.name?.trim() || member.username?.trim() || `User ${member.userId}`}</div>
+                                        <div className="text-xs text-muted-foreground truncate">{member.username?.trim() || `User ID ${member.userId}`}</div>
                                     </div>
 
                                     {member.role === 'OWNER' ? (
