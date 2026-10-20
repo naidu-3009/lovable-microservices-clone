@@ -6,6 +6,8 @@ on:
       - master
     paths:
       - 'workspace-service/**'
+      - 'common-library/**'
+      - 'pom.xml'
 
 env:
   SERVICE_NAME: workspace-service

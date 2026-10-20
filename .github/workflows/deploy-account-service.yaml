@@ -6,6 +6,8 @@ on:
       - master
     paths:
       - 'account-service/**'
+      - 'common-library/**'
+      - 'pom.xml'
 env:
   SERVICE_NAME: account-service
   IMAGE_NAME: nishanthtalari/lovable-account-service

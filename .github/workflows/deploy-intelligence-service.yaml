@@ -6,6 +6,8 @@ on:
       - master
     paths:
       - 'intelligence-service/**'
+      - 'common-library/**'
+      - 'pom.xml'
 
 env:
   SERVICE_NAME: intelligence-service
