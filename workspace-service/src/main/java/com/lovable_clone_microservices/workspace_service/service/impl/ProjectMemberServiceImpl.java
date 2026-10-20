@@ -43,7 +43,9 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     public List<MemberResponse> getProjectMembers(Long projectId) {
         Long userId= authUtil.getCurrentUserId();
         Project project=getUserProjectByIdInternal(projectId);
-        return projectMemberRepository.findByProjectId(projectId).stream().map(projectMemberMapper::toMemberResponseFromMember).toList();
+        return projectMemberRepository.findByProjectId(projectId).stream()
+                .map(this::toMemberResponseWithUser)
+                .toList();
     }
 
 
@@ -66,7 +68,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
         ProjectMember member=ProjectMember.builder().projectMemberId(projectMemberId).projectMemberRole(request.role()).invitedAt(Instant.now()).project(project).build();
 
         projectMemberRepository.save(member);
-        return projectMemberMapper.toMemberResponseFromMember(member);
+        return toMemberResponseWithUser(member);
 
     }
 
@@ -81,7 +83,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
 
         projectMember.setProjectMemberRole(request.role());
         projectMemberRepository.save(projectMember);
-       return projectMemberMapper.toMemberResponseFromMember(projectMember);
+        return toMemberResponseWithUser(projectMember);
     }
 
     @Override
@@ -98,6 +100,19 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
         }
         projectMemberRepository.deleteById(projectMemberId);
         return ;
+    }
+
+    private MemberResponse toMemberResponseWithUser(ProjectMember member) {
+        MemberResponse membership = projectMemberMapper.toMemberResponseFromMember(member);
+        UserDto user = accountClient.getUserById(membership.userId());
+        return new MemberResponse(
+                membership.userId(),
+                user.username(),
+                user.name(),
+                membership.avatarUrl(),
+                membership.role(),
+                membership.projectId()
+        );
     }
 
     //internal use
