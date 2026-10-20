@@ -78,6 +78,18 @@ function buildFileTree(paths: { path: string }[]): FileNode[] {
     }
   }
 
+function normalizeProjectSummary(
+  project: ProjectSummaryResponse & { projectId?: number }
+): ProjectSummaryResponse {
+  const id = project.projectId ?? project.id;
+
+  if (typeof id !== "number") {
+    throw new Error("Project response is missing its project ID");
+  }
+
+  return { ...project, id };
+}
+
   // Sort each level: directories first, then alphabetically
   const sortNodes = (nodes: FileNode[]) => {
     nodes.sort((a, b) => {
@@ -169,31 +181,47 @@ export const api = {
     return response.json();
   },
 
-  async getProjects(): Promise<ProjectSummaryResponse[]> {
-    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects`, {
+async getProjects(): Promise<ProjectSummaryResponse[]> {
+  const response = await fetch(
+    `${BASE_URL}/api/v1/workspace/projects`,
+    {
       headers: { ...getAuthHeaders() },
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch projects");
     }
+  );
 
-    return response.json();
-  },
+  if (!response.ok) {
+    throw new Error("Failed to fetch projects");
+  }
 
-  async createProject(name: string): Promise<ProjectSummaryResponse> {
-    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects`, {
+  const projects = (await response.json()) as Array<
+    ProjectSummaryResponse & { projectId?: number }
+  >;
+
+  return projects.map(normalizeProjectSummary);
+},
+
+async createProject(name: string): Promise<ProjectSummaryResponse> {
+  const response = await fetch(
+    `${BASE_URL}/api/v1/workspace/projects`,
+    {
       method: "POST",
-      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      headers: {
+        "Content-Type": "application/json",
+        ...getAuthHeaders(),
+      },
       body: JSON.stringify({ name }),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to create project");
     }
+  );
 
-    return response.json();
-  },
+  if (!response.ok) {
+    throw new Error("Failed to create project");
+  }
+
+  const project = (await response.json()) as
+    ProjectSummaryResponse & { projectId?: number };
+
+  return normalizeProjectSummary(project);
+},
 
   async getProject(id: string): Promise<ProjectResponse> {
     const response = await fetch(`${BASE_URL}/api/v1/workspace/projects/${id}`, {
