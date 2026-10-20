@@ -33,17 +33,23 @@ export const OPEN_TABS_KEY = "open_tabs";
 export const ACTIVE_TAB_KEY = "active_tab";
 
 // API response format for files endpoint
+
 interface FilesApiResponse {
   files: { path: string }[];
 }
 
-// Convert flat file paths to nested tree structure
+type ProjectSummaryApiResponse = Omit<ProjectSummaryResponse, "id"> & {
+  id?: number;
+  projectId?: number;
+};
+
 function buildFileTree(paths: { path: string }[]): FileNode[] {
   const root: FileNode[] = [];
   const nodeMap = new Map<string, FileNode>();
 
-  // Sort paths to ensure directories come before their children
-  const sortedPaths = [...paths].sort((a, b) => a.path.localeCompare(b.path));
+  const sortedPaths = [...paths].sort((a, b) =>
+    a.path.localeCompare(b.path)
+  );
 
   for (const { path } of sortedPaths) {
     const parts = path.split("/");
@@ -52,12 +58,14 @@ function buildFileTree(paths: { path: string }[]): FileNode[] {
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
       const parentPath = currentPath;
-      currentPath = currentPath ? `${currentPath}/${part}` : part;
+      currentPath = currentPath
+        ? `${currentPath}/${part}`
+        : part;
 
-      // Skip if node already exists
       if (nodeMap.has(currentPath)) continue;
 
       const isFile = i === parts.length - 1;
+
       const node: FileNode = {
         name: part,
         path: currentPath,
@@ -69,7 +77,7 @@ function buildFileTree(paths: { path: string }[]): FileNode[] {
 
       if (parentPath) {
         const parent = nodeMap.get(parentPath);
-        if (parent && parent.children) {
+        if (parent?.children) {
           parent.children.push(node);
         }
       } else {
@@ -78,25 +86,13 @@ function buildFileTree(paths: { path: string }[]): FileNode[] {
     }
   }
 
-function normalizeProjectSummary(
-  project: ProjectSummaryResponse & { projectId?: number }
-): ProjectSummaryResponse {
-  const id = project.projectId ?? project.id;
-
-  if (typeof id !== "number") {
-    throw new Error("Project response is missing its project ID");
-  }
-
-  return { ...project, id };
-}
-
-  // Sort each level: directories first, then alphabetically
   const sortNodes = (nodes: FileNode[]) => {
     nodes.sort((a, b) => {
       if (a.type === "directory" && b.type === "file") return -1;
       if (a.type === "file" && b.type === "directory") return 1;
       return a.name.localeCompare(b.name);
     });
+
     nodes.forEach((node) => {
       if (node.children) sortNodes(node.children);
     });
@@ -105,6 +101,24 @@ function normalizeProjectSummary(
   sortNodes(root);
   return root;
 }
+
+function normalizeProjectSummary(
+  project: ProjectSummaryApiResponse
+): ProjectSummaryResponse {
+  const id = project.projectId ?? project.id;
+
+  if (typeof id !== "number" || !Number.isSafeInteger(id) || id <= 0) {
+    throw new Error(
+      `Invalid project ID in API response: ${JSON.stringify(project)}`
+    );
+  }
+
+  return {
+    ...project,
+    id,
+  };
+}
+
 
 export const api = {
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
@@ -181,6 +195,7 @@ export const api = {
     return response.json();
   },
 
+
 async getProjects(): Promise<ProjectSummaryResponse[]> {
   const response = await fetch(
     `${BASE_URL}/api/v1/workspace/projects`,
@@ -190,14 +205,21 @@ async getProjects(): Promise<ProjectSummaryResponse[]> {
   );
 
   if (!response.ok) {
-    throw new Error("Failed to fetch projects");
+    const error = await response.text();
+    throw new Error(
+      `Failed to fetch projects (${response.status}): ${error}`
+    );
   }
 
-  const projects = (await response.json()) as Array<
-    ProjectSummaryResponse & { projectId?: number }
-  >;
+  const projects: unknown = await response.json();
 
-  return projects.map(normalizeProjectSummary);
+  if (!Array.isArray(projects)) {
+    throw new Error("Expected the projects API to return an array");
+  }
+
+  return projects.map((project) =>
+    normalizeProjectSummary(project as ProjectSummaryApiResponse)
+  );
 },
 
 async createProject(name: string): Promise<ProjectSummaryResponse> {
@@ -214,14 +236,18 @@ async createProject(name: string): Promise<ProjectSummaryResponse> {
   );
 
   if (!response.ok) {
-    throw new Error("Failed to create project");
+    const error = await response.text();
+    throw new Error(
+      `Failed to create project (${response.status}): ${error}`
+    );
   }
 
-  const project = (await response.json()) as
-    ProjectSummaryResponse & { projectId?: number };
+  const project =
+    (await response.json()) as ProjectSummaryApiResponse;
 
   return normalizeProjectSummary(project);
 },
+
 
   async getProject(id: string): Promise<ProjectResponse> {
     const response = await fetch(`${BASE_URL}/api/v1/workspace/projects/${id}`, {
