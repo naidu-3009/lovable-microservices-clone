@@ -56,11 +56,11 @@ export interface ChatMessage {
 }
 
 export interface ProjectSummaryResponse {
-  id: number;
+  projectId: number;
   name: string;
   description?: string;
-  thumbnailUrl?: string; // Optional URL for project thumbnail
-  role?: ProjectRole; // Added to show user's role in the project list
+  thumbnailUrl?: string;
+  role?: ProjectRole;
   createdAt: string;
 }
 

@@ -57,10 +57,11 @@ export function ProjectsDashboard() {
     setLoading(true);
     try {
       setProjects(await api.getProjects());
-    } catch {
+    } catch (error) {
+      console.error("Failed to load projects:", error);
       toast({
         title: "Couldn’t load projects",
-        description: "Please refresh and try again.",
+        description: error instanceof Error ? error.message : "Please refresh and try again.",
         variant: "destructive",
       });
     } finally {
@@ -100,10 +101,10 @@ export function ProjectsDashboard() {
           description: "Your workspace is ready.",
         });
       } else if (selected) {
-        const updated = await api.updateProject(String(selected.id), trimmed);
+        const updated = await api.updateProject(String(selected.projectId), trimmed);
         setProjects((current) =>
           current.map((project) =>
-            project.projectId === selected.id
+            project.projectId === selected.projectId
               ? { ...project, name: updated.name }
               : project,
           ),
@@ -127,7 +128,7 @@ export function ProjectsDashboard() {
     try {
       await api.deleteProject(String(project.projectId));
       setProjects((current) =>
-        current.filter((item) => item.id !== project.projectId),
+        current.filter((item) => item.projectId !== project.projectId),
       );
       toast({ title: "Project deleted" });
     } catch {

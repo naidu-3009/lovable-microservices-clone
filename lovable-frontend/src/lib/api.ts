@@ -38,11 +38,6 @@ interface FilesApiResponse {
   files: { path: string }[];
 }
 
-type ProjectSummaryApiResponse = Omit<ProjectSummaryResponse, "id"> & {
-  id?: number;
-  projectId?: number;
-};
-
 function buildFileTree(paths: { path: string }[]): FileNode[] {
   const root: FileNode[] = [];
   const nodeMap = new Map<string, FileNode>();
@@ -101,24 +96,6 @@ function buildFileTree(paths: { path: string }[]): FileNode[] {
   sortNodes(root);
   return root;
 }
-
-function normalizeProjectSummary(
-  project: ProjectSummaryApiResponse
-): ProjectSummaryResponse {
-  const id = project.projectId ?? project.id;
-
-  if (typeof id !== "number" || !Number.isSafeInteger(id) || id <= 0) {
-    throw new Error(
-      `Invalid project ID in API response: ${JSON.stringify(project)}`
-    );
-  }
-
-  return {
-    ...project,
-    id,
-  };
-}
-
 
 export const api = {
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
@@ -196,33 +173,34 @@ export const api = {
   },
 
 
-async getProjects(): Promise<ProjectSummaryResponse[]> {
-  const response = await fetch(
-    `${BASE_URL}/api/v1/workspace/projects`,
-    {
+  async getProjects(): Promise<ProjectSummaryResponse[]> {
+    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects`, {
       headers: { ...getAuthHeaders() },
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to fetch projects (${response.status}): ${error}`);
     }
-  );
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(
-      `Failed to fetch projects (${response.status}): ${error}`
-    );
-  }
+    const projects: unknown = await response.json();
+    if (!Array.isArray(projects)) {
+      throw new Error("Expected the projects API to return an array");
+    }
 
-  const projects: unknown = await response.json();
+    // The Workspace Service list endpoint returns `projectId`; keep that API
+    // contract throughout the frontend. Do not add a second `id` field.
+    return projects as ProjectSummaryResponse[];
+  },
 
-  if (!Array.isArray(projects)) {
-    throw new Error("Expected the projects API to return an array");
-  }
-
-  return projects.map((project) =>
-    normalizeProjectSummary(project as ProjectSummaryApiResponse)
-  );
-},
 
 async createProject(name: string): Promise<ProjectSummaryResponse> {
+  // Capture existing IDs so duplicate project names are handled correctly.
+  const existingProjects = await api.getProjects();
+  const existingIds = new Set(
+    existingProjects.map((project) => project.projectId),
+  );
+
   const response = await fetch(
     `${BASE_URL}/api/v1/workspace/projects`,
     {
@@ -232,20 +210,35 @@ async createProject(name: string): Promise<ProjectSummaryResponse> {
         ...getAuthHeaders(),
       },
       body: JSON.stringify({ name }),
-    }
+    },
   );
 
   if (!response.ok) {
     const error = await response.text();
     throw new Error(
-      `Failed to create project (${response.status}): ${error}`
+      `Failed to create project (${response.status}): ${error}`,
     );
   }
 
-  const project =
-    (await response.json()) as ProjectSummaryApiResponse;
+  // The production endpoint has returned an empty successful response.
+  await response.text();
 
-  return normalizeProjectSummary(project);
+  // Refresh the list to obtain the new project's actual projectId.
+  const refreshedProjects = await api.getProjects();
+
+  const created = refreshedProjects.find(
+    (project) =>
+      project.name === name &&
+      !existingIds.has(project.projectId),
+  );
+
+  if (!created) {
+    throw new Error(
+      "Project creation succeeded, but the new project could not be identified. Refresh the dashboard.",
+    );
+  }
+
+  return created;
 },
 
 
