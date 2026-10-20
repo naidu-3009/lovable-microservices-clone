@@ -70,15 +70,18 @@ public class AiGenerationServiceImpl implements AiGenerationService {
     //as parameters
     public Flux<StreamResponse> streamResponse(String userPrompt, Long projectId) {
 //        usageService.checkDailyTokensUsage();
+        String authorization = authUtil.getCurrentAuthorizationHeader();
         Long userId = authUtil.getCurrentUserId();
         ChatSession chatSession = createChatSessionIfNotExists(projectId, userId);
         Map<String, Object> advisorParams = Map.of(
                 "userId", userId,
-                "projectId", projectId
+                "projectId", projectId,
+                "authorization", authorization
         );
 
         StringBuilder fullResponseBuffer = new StringBuilder();
-        CodeGenerationTools codeGenerationTools = new CodeGenerationTools(projectId, workspaceClient);
+        CodeGenerationTools codeGenerationTools =
+                new CodeGenerationTools(projectId, workspaceClient, authorization);
         AtomicReference<Long> startTime = new AtomicReference<Long>(System.currentTimeMillis());
         AtomicReference<Long> endTime = new AtomicReference<>(0L);
         AtomicReference<Usage> usageRef = new AtomicReference<Usage>();

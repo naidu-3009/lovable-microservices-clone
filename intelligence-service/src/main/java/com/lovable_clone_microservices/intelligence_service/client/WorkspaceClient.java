@@ -5,6 +5,7 @@ import com.lovable_clone_microservices.common_library.enums.ProjectPerimission;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 
 
@@ -12,10 +13,17 @@ import org.springframework.web.bind.annotation.RequestParam;
         "}")
 public interface WorkspaceClient {
     @GetMapping("/internal/v1/projects/{projectId}/files/tree")
-    FileTreeResponse getFileTree(@PathVariable("projectId") Long projectId);
+    FileTreeResponse getFileTree(
+            @PathVariable("projectId") Long projectId,
+            @RequestHeader("Authorization") String authorization
+    );
 
     @GetMapping("/internal/v1/projects/{projectId}/files/content")
-    String getFileContent(@PathVariable("projectId") Long projectId, @RequestParam("path") String path);
+    String getFileContent(
+            @PathVariable("projectId") Long projectId,
+            @RequestParam("path") String path,
+            @RequestHeader("Authorization") String authorization
+    );
 
     @GetMapping("/internal/v1/projects/{projectId}/permissions/check")
     boolean checkPermission(

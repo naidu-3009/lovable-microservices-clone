@@ -1,7 +1,7 @@
 package com.lovable_clone_microservices.intelligence_service.llm.advisors;
 
-import com.lovable_clone_microservices.intelligence_service.client.WorkspaceClient;
 import com.lovable_clone_microservices.common_library.dto.FileNode;
+import com.lovable_clone_microservices.intelligence_service.client.WorkspaceClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClientRequest;
@@ -29,19 +29,21 @@ public class FileTreeContextAdvisor implements StreamAdvisor {
 
     @Override
     public Flux<ChatClientResponse> adviseStream(ChatClientRequest request, StreamAdvisorChain streamAdvisorChain) {
-         Map<String,Object> context =request.context();
-         Long projectId=Long.parseLong(context.getOrDefault("projectId",0).toString());
-        ChatClientRequest augmentedChatClientRequest=augmentRequestWithFileTree(request,projectId);
+        Map<String, Object> context = request.context();
+        Long projectId = Long.parseLong(context.getOrDefault("projectId", 0).toString());
+        String authorization = (String) context.get("authorization");
+        ChatClientRequest augmentedChatClientRequest =
+                augmentRequestWithFileTree(request, projectId, authorization);
         return streamAdvisorChain.nextStream(augmentedChatClientRequest);
     }
 
-    private ChatClientRequest augmentRequestWithFileTree(ChatClientRequest request,Long projectId){
+    private ChatClientRequest augmentRequestWithFileTree(ChatClientRequest request, Long projectId, String authorization) {
 
-        List<Message> unAugmentedPrompt=request.prompt().getInstructions();
+        List<Message> unAugmentedPrompt = request.prompt().getInstructions();
 
 
-        Message systemPrompt=unAugmentedPrompt.stream()
-                .filter(m-> m.getMessageType()== MessageType.SYSTEM)
+        Message systemPrompt = unAugmentedPrompt.stream()
+                .filter(m -> m.getMessageType() == MessageType.SYSTEM)
                 .findFirst()
                 .orElse(null);
 
@@ -51,21 +53,21 @@ public class FileTreeContextAdvisor implements StreamAdvisor {
                 .toList());
 
 
+        List<Message> finalAugmentedPrompt = new ArrayList<>();
 
-        List<Message> finalAugmentedPrompt=new ArrayList<>();
-
-        if(systemPrompt != null){
+        if (systemPrompt != null) {
             finalAugmentedPrompt.add(systemPrompt);
         }
 
 
-        List<FileNode> fileTree=workspaceClient.getFileTree(projectId).files();
-        String fileTreeContext="\n\n ===========File Tree========\n"+fileTree.toString();
+        List<FileNode> fileTree =
+                workspaceClient.getFileTree(projectId, authorization).files();
+        String fileTreeContext = "\n\n ===========File Tree========\n" + fileTree.toString();
         finalAugmentedPrompt.add(new SystemMessage(fileTreeContext));
 
         finalAugmentedPrompt.addAll(userPrompt);
 
-        return request.mutate().prompt(new Prompt(finalAugmentedPrompt,request.prompt().getOptions())).build();
+        return request.mutate().prompt(new Prompt(finalAugmentedPrompt, request.prompt().getOptions())).build();
     }
 
     @Override
@@ -78,8 +80,6 @@ public class FileTreeContextAdvisor implements StreamAdvisor {
         return 0;
     }
 }
-
-
 
 
 //LLms has this caching thing where if the consecutive prompts have same "prefix"  then
