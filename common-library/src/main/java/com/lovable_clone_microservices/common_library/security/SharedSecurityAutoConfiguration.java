@@ -13,22 +13,28 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 public class SharedSecurityAutoConfiguration {
 
     @Bean
-    public AuthUtil authUtil(){
+    public AuthUtil authUtil() {
         return new AuthUtil();
     }
 
     @Bean
-    public JwtAuthFilter jwtAuthFilter(AuthUtil authUtil, @Qualifier("handlerExceptionResolver") HandlerExceptionResolver handlerExceptionResolver){
-        return new JwtAuthFilter(authUtil,handlerExceptionResolver);
+    public JwtAuthFilter jwtAuthFilter(AuthUtil authUtil, @Qualifier("handlerExceptionResolver") HandlerExceptionResolver handlerExceptionResolver) {
+        return new JwtAuthFilter(authUtil, handlerExceptionResolver);
     }
 
     @Bean
-    public RequestInterceptor requestInterceptor(){
+    public RequestInterceptor requestInterceptor() {
         return requestTemplate -> {
-            Authentication authentication= SecurityContextHolder.getContext().getAuthentication();
+            if (requestTemplate.headers().containsKey("Authorization")) {
+                return;
+            }
 
-            if(authentication!=null &&  authentication.getCredentials() instanceof String token){
-                requestTemplate.header("Authorization","Bearer "+token);
+            Authentication authentication =
+                    SecurityContextHolder.getContext().getAuthentication();
+
+            if (authentication != null
+                    && authentication.getCredentials() instanceof String token) {
+                requestTemplate.header("Authorization", "Bearer " + token);
             }
         };
     }

@@ -1,8 +1,6 @@
 package com.lovable_clone_microservices.common_library.security;
 
-import com.lovable_clone_microservices.common_library.dto.UserDto;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -24,15 +22,15 @@ public class AuthUtil {
 
 
     @Value("${jwt.secret-key}")
-    private  String jwtSecretKey;
+    private String jwtSecretKey;
 
-    public String generateAccessToken(JwtUserPrincipal user){
+    public String generateAccessToken(JwtUserPrincipal user) {
         return Jwts.builder()
                 .subject(user.getUsername())
-                .claim("userId",user.userId().toString())
-                .claim("name",user.name())
+                .claim("userId", user.userId().toString())
+                .claim("name", user.name())
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis()+1000*60*100))
+                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 100))
                 .signWith(getSecretKey(), SignatureAlgorithm.HS256)
                 .compact();
 
@@ -47,26 +45,22 @@ public class AuthUtil {
 //            .signWith(...)      → signature
 //            .compact()          → final JWT string
 
-    public SecretKey getSecretKey(){
+    public SecretKey getSecretKey() {
         return Keys.hmacShaKeyFor(jwtSecretKey.getBytes(StandardCharsets.UTF_8)); //we are just creating the signing in key so header+payload+this key== signature
     }
-
 
 
     //header.payload.sign->jwt tokent header==what algorithm we have used,payload=our info(subject,claim)->we inserted this +issued at and expired at inpayload
     //remember jwt is not encrypted->its just base 64 encoded what makes special?->key(storedin server)+algo(from header)=sign
     //payload+secret key+ hs256(algo)(came from header)==signature
 
-    public JwtUserPrincipal verifyAccessToken(String token){
+    public JwtUserPrincipal verifyAccessToken(String token) {
         Claims claims = Jwts.parser().verifyWith(getSecretKey()).build().parseSignedClaims(token).getPayload();
         Long userId = Long.parseLong(claims.get("userId", String.class));
         String name = claims.get("name", String.class);
-        String userName=claims.getSubject();
-        return new JwtUserPrincipal(userId.toString(),userName,name,null,new ArrayList<>());
+        String userName = claims.getSubject();
+        return new JwtUserPrincipal(userId.toString(), userName, name, null, new ArrayList<>());
     }
-
-
-
 
 
 //  1. Jwts.parser() parses the received JWT.
@@ -84,13 +78,26 @@ public class AuthUtil {
 //    In short: JWT → verify signature → extract payload → get userId + username → create JwtUserPrincipal → give it to the authentication filter.
 
 
-    public Long getCurrentUserId(){
-        Authentication authentication= SecurityContextHolder.getContext().getAuthentication();
-        if(authentication ==null || !(authentication.getPrincipal() instanceof  JwtUserPrincipal)){
-            throw  new AuthenticationCredentialsNotFoundException("No JWT Found");
+    public Long getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof JwtUserPrincipal)) {
+            throw new AuthenticationCredentialsNotFoundException("No JWT Found");
         }
         return Long.parseLong(((JwtUserPrincipal) authentication.getPrincipal()).userId());
 
+    }
+
+    public String getCurrentAuthorizationHeader() {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null
+                || !(authentication.getCredentials() instanceof String token)
+                || token.isBlank()) {
+            throw new AuthenticationCredentialsNotFoundException("No JWT found");
+        }
+
+        return token.startsWith("Bearer ") ? token : "Bearer " + token;
     }
 
 
