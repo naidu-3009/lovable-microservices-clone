@@ -50,14 +50,44 @@ public class KubernetesDeploymentServiceImpl implements DeploymentService {
 
         Pod existingPod = findActivePod(projectId);
 
+//        if (existingPod != null) {
+//            log.info("Found existing pod {} for project {}. Resuming...", existingPod.getMetadata().getName(), projectId);
+////            execCommand(existingPod.getMetadata().getName(), SYNCER_CONTAINER, "mc", "mirror", "--overwrite",
+////                    String.format("myminio/projectslovable/%d/react-vite-tailwind-daisyui-starter-main/", projectId),
+////                    "/app/");
+//            registerRoute(domain, existingPod);
+//            return new DeployResponse(formattedUrl);
+//        }
+
         if (existingPod != null) {
-            log.info("Found existing pod {} for project {}. Resuming...", existingPod.getMetadata().getName(), projectId);
-//            execCommand(existingPod.getMetadata().getName(), SYNCER_CONTAINER, "mc", "mirror", "--overwrite",
-//                    String.format("myminio/projectslovable/%d/react-vite-tailwind-daisyui-starter-main/", projectId),
-//                    "/app/");
+            String podName = existingPod.getMetadata().getName();
+
+            log.info("Found existing pod {} for project {}. Syncing latest files...",
+                    podName, projectId);
+
+            String src = String.format(
+                    "myminio/projectslovable/%d/", projectId);
+
+            // Sync the latest saved project files without recreating the pod.
+            execCommand(podName, SYNCER_CONTAINER,
+                    "mc", "mirror", "--overwrite", src, "/app/");
+
+
+            // Start the background watcher only if it is not already running.
+            String pidFile = "/tmp/mc-mirror-" + projectId + ".pid";
+            String watchCmd = String.format(
+                    "if [ ! -f %1$s ] || ! kill -0 \"$(cat %1$s)\" 2>/dev/null; then " +
+                            "nohup mc mirror --overwrite --watch %2$s /app/ " +
+                            "> /app/sync.log 2>&1 < /dev/null & " +
+                            "echo $! > %1$s; fi",
+                    pidFile, src);
+
+            execCommand(podName, SYNCER_CONTAINER, "sh", "-c", watchCmd);
+
             registerRoute(domain, existingPod);
             return new DeployResponse(formattedUrl);
         }
+
 
         return claimAndStartNewPod(projectId, domain, formattedUrl);
     }
@@ -106,6 +136,15 @@ public class KubernetesDeploymentServiceImpl implements DeploymentService {
 
             log.info("Starting initial sync for project {} in pod {}", projectId, podName);
             execCommand(podName, SYNCER_CONTAINER, "mc", "mirror", "--overwrite", "--remove", src, "/app/");
+            String pidFile = "/tmp/mc-mirror-" + projectId + ".pid";
+            String watchCmd = String.format(
+                    "if [ ! -f %1$s ] || ! kill -0 \"$(cat %1$s)\" 2>/dev/null; then " +
+                            "nohup mc mirror --overwrite --watch %2$s /app/ " +
+                            "> /app/sync.log 2>&1 < /dev/null & " +
+                            "echo $! > %1$s; fi",
+                    pidFile, src);
+
+            execCommand(podName, SYNCER_CONTAINER, "sh", "-c", watchCmd);
 
 //            String watchCmd = String.format(
 //                    "nohup mc mirror --overwrite --watch myminio/projectslovable/%d/react-vite-tailwind-daisyui-starter-main/ /app/ > /app/sync.log 2>&1 &",
