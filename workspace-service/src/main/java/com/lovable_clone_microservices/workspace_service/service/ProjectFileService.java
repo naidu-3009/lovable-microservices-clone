@@ -5,9 +5,11 @@ import com.lovable_clone_microservices.workspace_service.dto.projects.FileConten
 import com.lovable_clone_microservices.workspace_service.dto.projects.FileTreeResponse;
 
 public interface ProjectFileService {
-         FileTreeResponse getFileTree(Long projectId);
+    FileTreeResponse getFileTree(Long projectId);
 
     FileContentResponse getFileContent(Long projectId, String path);
 
     void saveFile(Long projectId, String filePath, String fileContent);
+
+    byte[] downloadProjectZip(Long projectId);
 }
