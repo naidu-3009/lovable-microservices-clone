@@ -4,7 +4,10 @@ import { Button } from "@/components/ui/button";
 import { api, PREVIEW_URL_KEY } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
-import { RuntimeErrorAlert, RuntimeError } from "@/components/RuntimeErrorAlert";
+import {
+  RuntimeErrorAlert,
+  RuntimeError,
+} from "@/components/RuntimeErrorAlert";
 
 interface PreviewPanelProps {
   projectId: string;
@@ -13,27 +16,63 @@ interface PreviewPanelProps {
   onFix: (error: RuntimeError) => void;
 }
 
-export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: PreviewPanelProps) {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(() => {
-    // Load from localStorage on mount
-    return localStorage.getItem(PREVIEW_URL_KEY);
+export function PreviewPanel({
+  projectId,
+  runtimeError,
+  onDismiss,
+  onFix,
+}: PreviewPanelProps) {
+  const [previewState, setPreviewState] = useState<{
+    projectId: string;
+    url: string | null;
+  }>({
+    projectId,
+    url: null,
   });
+
+  const previewUrl =
+    previewState.projectId === projectId ? previewState.url : null;
+
   const [isDeploying, setIsDeploying] = useState(false);
   const { toast } = useToast();
 
-  // Store previewUrl in localStorage when it changes
+  const storageKey = `${PREVIEW_URL_KEY}:${projectId}`;
+
   useEffect(() => {
-    if (previewUrl) {
-      localStorage.setItem(PREVIEW_URL_KEY, previewUrl);
+    let url = localStorage.getItem(storageKey);
+
+    // Migrate the old URL only when it belongs to this project.
+    if (!url) {
+      const legacyUrl = localStorage.getItem(PREVIEW_URL_KEY);
+
+      if (legacyUrl) {
+        try {
+          if (new URL(legacyUrl).hostname.startsWith(`project-${projectId}.`)) {
+            url = legacyUrl;
+          }
+        } catch {
+          // Ignore invalid legacy URLs.
+        }
+      }
     }
-  }, [previewUrl]);
+
+    setPreviewState({ projectId, url });
+  }, [projectId, storageKey]);
+
+  useEffect(() => {
+    if (previewState.projectId !== projectId) return;
+
+    if (previewState.url) {
+      localStorage.setItem(storageKey, previewState.url);
+    }
+  }, [previewState, projectId, storageKey]);
 
   const handleDeploy = async () => {
     setIsDeploying(true);
 
     try {
       const response = await api.deploy(projectId);
-      setPreviewUrl(response.previewUrl);
+      setPreviewState({ projectId, url: response.previewUrl });
       toast({
         title: "Deployment successful",
         description: "Your preview is now ready",
@@ -41,7 +80,8 @@ export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: Prev
     } catch (error) {
       toast({
         title: "Deployment failed",
-        description: error instanceof Error ? error.message : "Something went wrong",
+        description:
+          error instanceof Error ? error.message : "Something went wrong",
         variant: "destructive",
       });
     } finally {
@@ -68,7 +108,7 @@ export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: Prev
           </Button>
         </div>
 
-          <div className="flex-1 flex items-center h-8 px-3 rounded-md border border-border/60 bg-muted/40 text-sm text-muted-foreground">
+        <div className="flex-1 flex items-center h-8 px-3 rounded-md border border-border/60 bg-muted/40 text-sm text-muted-foreground">
           <Globe className="w-3.5 h-3.5 mr-2 shrink-0" />
           <span className="truncate">
             {previewUrl || "Click 'Run Preview' to deploy"}
@@ -125,7 +165,10 @@ export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: Prev
             <p className="text-sm text-muted-foreground">
               Your preview will appear here
             </p>
-            <p className="mt-1 max-w-xs text-xs leading-5 text-muted-foreground">Run a preview after your companion has generated or updated the project.</p>
+            <p className="mt-1 max-w-xs text-xs leading-5 text-muted-foreground">
+              Run a preview after your companion has generated or updated the
+              project.
+            </p>
           </div>
         )}
       </div>
