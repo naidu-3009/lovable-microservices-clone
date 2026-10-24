@@ -78,10 +78,10 @@ spec:
     - metadata:
         name: kafka-data
       spec:
-        accessModes: [ReadWriteOnce]
+        accessModes: [ ReadWriteOnce ]
         resources:
           requests:
-            storage: 10Gi
+            storage: 5Gi
 
 ---
 apiVersion: v1

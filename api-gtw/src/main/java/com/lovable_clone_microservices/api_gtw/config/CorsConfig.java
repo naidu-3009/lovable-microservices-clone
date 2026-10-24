@@ -16,6 +16,8 @@ public class CorsConfig {
         CorsConfiguration corsConfig = new CorsConfiguration();
         corsConfig.setAllowedOrigins(Arrays.asList(
                 //this new addition gives our domain cors protection
+                "https://ideastitch.in",
+                "https://www.ideastitch.in",
                 "http://ideastitch.in",
                 "http://www.ideastitch.in",
                 "http://localhost:5173"
