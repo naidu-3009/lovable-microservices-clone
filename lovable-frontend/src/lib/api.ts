@@ -1,6 +1,6 @@
 import { ChatMessage, DeployResponse, FileNode, LoginCredentials, LoginResponse, ProjectSummaryResponse, ProjectRequest, ProjectResponse, ProjectMember, ProjectRole, SignupRequest, AuthResponse } from "./types";
 
-const BASE_URL = "http://api.ideastitch.in";
+const BASE_URL = "https://api.ideastitch.in";
 
 export const getAuthToken = () => localStorage.getItem("auth_token");
 
