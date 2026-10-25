@@ -42,19 +42,19 @@ subscription-aware usage, and Kubernetes runner environments.
 
 ### AI Code Generation and ZIP Download
 
-![IdeaStitch code generation and ZIP download](docs/images/01-code-generation-and-zip.png)
+![IdeaStitch code generation and ZIP download](docs/images/screenshots/01-code-generation-and-zip.png)
 
 ### Live HTTPS Preview
 
-![IdeaStitch HTTPS preview](docs/images/02-https-preview-workspace.png)
+![IdeaStitch HTTPS preview](docs/images/screenshots/02-https-preview-workspace.png)
 
 ### Generated Application — Finora
 
-![Finora overview dashboard](docs/images/03-finora-overview.png)
+![Finora overview dashboard](docs/images/screenshots/03-finora-overview.png)
 
-![Finora transactions page](docs/images/04-finora-transactions.png)
+![Finora transactions page](docs/images/screenshots/04-finora-transactions.png)
 
-![Finora budgets page](docs/images/05-finora-budgets.png)
+![Finora budgets page](docs/images/screenshots/05-finora-budgets.png)
 
 ## 🏗️ Architecture
 
@@ -66,7 +66,7 @@ the Workspace and Intelligence services coordinate code generation and file pers
 This diagram shows the main services, their dependencies, and the
 communication paths between the backend components.
 
-![IdeaStitch microservices architecture](docs/images/06-microservices-architecture.png)
+![IdeaStitch microservices architecture](docs/images/architecture/06-microservices-architecture.png)
 
 ### Service responsibilities
 
@@ -272,7 +272,7 @@ preview proxy are deployed separately.
 The following diagram illustrates how the application services, ingress,
 stateful infrastructure, and preview runner pool are deployed and connected.
 
-![IdeaStitch GKE deployment architecture](docs/images/07-gke-deployment-architecture.png)
+![IdeaStitch GKE deployment architecture](docs/images/architecture/07-gke-deployment-architecture.png)
 
 ## 🌐 Custom Domain and HTTPS
 
@@ -288,7 +288,7 @@ endpoint; `www` uses a CNAME to the root domain.
 GoDaddy manages the domain's DNS records, while cert-manager and Let's
 Encrypt manage certificate issuance and renewal for the GKE ingress.
 
-![IdeaStitch domain and TLS architecture](docs/images/08-domain-tls-architecture.png)
+![IdeaStitch domain and TLS architecture](docs/images/architecture/08-domain-tls-architecture.png)
 
 | Hostname                   | Ingress destination      |
 |----------------------------|--------------------------|
@@ -377,26 +377,28 @@ Hub, Google Cloud Workload Identity Federation, the GKE cluster, and its region.
 
 ## 🗂️ Kubernetes Manifest Guide
 
-| Path                                      | Purpose                                                       |
-|-------------------------------------------|---------------------------------------------------------------|
-| `k8s/infra/namespaces.yaml`               | Namespaces and shared non-sensitive configuration.            |
-| `k8s/infra/ingress.yaml`                  | Public hostname routing for frontend, API, and preview proxy. |
-| `k8s/infra/letsencrypt-prod.yaml`         | HTTP-01 Let's Encrypt ClusterIssuer configuration.            |
-| `k8s/infra/runner-pool.yaml`              | Runner and syncer containers for generated applications.      |
-| `k8s/infra/core-network-policies.yaml`    | Network policies for core workloads.                          |
-| `k8s/infra/preview-network-policies.yaml` | Network policies for preview workloads.                       |
-| `k8s/services/account-service.yaml`       | Account service deployment and service.                       |
-| `k8s/services/api-gtw.yaml`               | API Gateway deployment and service.                           |
-| `k8s/services/config-service.yaml`        | Config Server deployment and service.                         |
-| `k8s/services/frontend.yaml`              | Frontend deployment and service.                              |
-| `k8s/services/intelligence-service.yaml`  | Intelligence service deployment and service.                  |
-| `k8s/services/workspace-service.yaml`     | Workspace service and preview-management permissions.         |
-| `k8s/stateful/pgvector.yaml`              | PostgreSQL/pgvector and persistent storage.                   |
-| `k8s/stateful/kafka.yaml`                 | Kafka StatefulSet and persistence.                            |
-| `k8s/stateful/minio.yaml`                 | MinIO and persistent storage.                                 |
-| `k8s/stateful/redis.yaml`                 | Redis StatefulSet and persistence.                            |
-| `k8s/proxy/proxy-deployment.yaml`         | Node.js preview proxy deployment.                             |
-| `k8s/computeclass-83gb.yaml`              | Optional GKE ComputeClass configuration.                      |
+| Path                                                           | Purpose                                                                                                            |
+|----------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
+| `k8s/infra/namespaces.yaml`                                    | Namespaces and shared non-sensitive configuration.                                                                 |
+| `k8s/infra/ingress.yaml`                                       | Public hostname routing for frontend, API, and preview proxy.                                                      |
+| `k8s/infra/letsencrypt-prod.yaml`                              | HTTP-01 Let's Encrypt ClusterIssuer configuration.                                                                 |
+| `k8s/infra/runner-pool.yaml`                                   | Runner and syncer containers for generated applications.                                                           |
+| `k8s/infra/core-network-policies.yaml`                         | Network policies for core workloads.                                                                               |
+| `k8s/infra/preview-network-policies.yaml`                      | Network policies for preview workloads.                                                                            |
+| `k8s/services/account-service.yaml`                            | Account service deployment and service.                                                                            |
+| `k8s/services/api-gtw.yaml`                                    | API Gateway deployment and service.                                                                                |
+| `k8s/services/config-service.yaml`                             | Config Server deployment and service.                                                                              |
+| `k8s/services/frontend.yaml`                                   | Frontend deployment and service.                                                                                   |
+| `k8s/services/intelligence-service.yaml`                       | Intelligence service deployment and service.                                                                       |
+| `k8s/services/workspace-service.yaml`                          | Workspace service and preview-management permissions.                                                              |
+| `k8s/stateful/pgvector.yaml`                                   | PostgreSQL/pgvector and persistent storage.                                                                        |
+| `k8s/stateful/kafka.yaml`                                      | Kafka StatefulSet and persistence.                                                                                 |
+| `k8s/stateful/minio.yaml`                                      | MinIO and persistent storage.                                                                                      |
+| `k8s/stateful/redis.yaml`                                      | Redis StatefulSet and persistence.                                                                                 |
+| `k8s/proxy/proxy-deployment.yaml`                              | Node.js preview proxy deployment.                                                                                  |
+| `k8s/infra/computeclass-83gb.yaml`                             | Optional GKE ComputeClass configuration.                                                                           |
+| `k8s/addons/cert-manager-autopilot.yaml`                       | Bundled cert-manager installation manifest retained for reference; not the current Helm-based installation source. |
+| `docs/deployment/archive/nginx-ingress-controller-backup.yaml` | Archived NGINX Ingress Controller manifest; not part of the active deployment.                                     |
 
 The ingress controller and GoDaddy cert-manager webhook are installed separately from the application manifests. Review
 the cluster-specific settings, service accounts, Secrets, storage, and ingress configuration before applying these files
