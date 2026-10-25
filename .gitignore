@@ -23,3 +23,23 @@ workspace-service/src/main/java/com/lovable_clone_microservices/workspace_servic
 *.jar
 *.war
 *.iml
+# Dependencies and generated build output
+**/node_modules/
+**/dist/
+**/build/
+**/target/
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+**/*-secrets.env
+k8s/app-secrets.env
+k8s/preview-secrets.env
+
+# Local replica backup
+/replicas-before-cert-manager.json
+
+# Editor backup files
+*~
+*.un~
