@@ -78,7 +78,9 @@ spec:
     - metadata:
         name: kafka-data
       spec:
-        accessModes: [ ReadWriteOnce ]
+        storageClassName: standard
+        accessModes:
+          - ReadWriteOnce
         resources:
           requests:
             storage: 5Gi

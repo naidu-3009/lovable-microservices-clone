@@ -48,7 +48,9 @@ spec:
     - metadata:
         name: minio-data
       spec:
-        accessModes: [ ReadWriteOnce ]
+        storageClassName: standard
+        accessModes:
+          - ReadWriteOnce
         resources:
           requests:
             storage: 10Gi

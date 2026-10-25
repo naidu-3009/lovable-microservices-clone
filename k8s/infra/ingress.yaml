@@ -4,13 +4,19 @@ metadata:
   name: lovable-main-ingress
   namespace: lovable-core
   annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
 spec:
-  ingressClassName: "nginx"
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - ideastitch.in
+        - www.ideastitch.in
+        - api.ideastitch.in
+      secretName: ideastitch-tls
   rules:
-    # 1. Main Website Route (The Frontend!)
-    - host: "ideastitch.in"
+    - host: ideastitch.in
       http:
         paths:
           - path: /
@@ -20,8 +26,7 @@ spec:
                 name: lovable-frontend
                 port:
                   number: 80
-
-    - host: "www.ideastitch.in"
+    - host: www.ideastitch.in
       http:
         paths:
           - path: /
@@ -31,8 +36,6 @@ spec:
                 name: lovable-frontend
                 port:
                   number: 80
-
-    # 2. Previews Route
     - host: "*.previews.ideastitch.in"
       http:
         paths:
@@ -43,9 +46,7 @@ spec:
                 name: lovable-micro-proxy
                 port:
                   number: 80
-
-    # 3. API Gateway Route
-    - host: "api.ideastitch.in"
+    - host: api.ideastitch.in
       http:
         paths:
           - path: /
