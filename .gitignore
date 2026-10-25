@@ -43,3 +43,6 @@ k8s/preview-secrets.env
 # Editor backup files
 *~
 *.un~
+
+cicd variables.txt
+cicd variables.txt
