@@ -62,7 +62,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         Subscription subscription = getSubscription(gatewaySubscriptionId);
         boolean hasUpdated = false;
 
-        if (status != null || status != subscription.getStatus()) {
+        if (status != null && status != subscription.getStatus()) {
             subscription.setStatus(status);
             hasUpdated = true;
         }

@@ -1,14 +1,15 @@
 package com.lovable_clone_microservices.account_service.controller;
 
-import com.lovable_clone_microservices.account_service.dto.subscription.CheckoutRequest;
-import com.lovable_clone_microservices.account_service.dto.subscription.CheckoutResponse;
-import com.lovable_clone_microservices.account_service.dto.subscription.PortalResponse;
-import com.lovable_clone_microservices.account_service.dto.subscription.SubscriptionResponse;
+import com.lovable_clone_microservices.account_service.dto.subscription.*;
+import com.lovable_clone_microservices.account_service.entity.Plan;
+import com.lovable_clone_microservices.account_service.repository.PlanRepository;
 import com.lovable_clone_microservices.account_service.services.PaymentProcessor;
 import com.lovable_clone_microservices.account_service.services.SubscriptionService;
 import com.stripe.exception.SignatureVerificationException;
+import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
 import com.stripe.model.EventDataObjectDeserializer;
+import com.stripe.model.Price;
 import com.stripe.model.StripeObject;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
@@ -18,10 +19,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -30,26 +30,26 @@ import java.util.Map;
 public class BillingController {
     private final SubscriptionService subscriptionService;
     private final PaymentProcessor paymentProcessor;
+    private final PlanRepository planRepository;
 
-     @Value("${stripe.webhook.secret}")
-     String webHookSecret;
-
+    @Value("${stripe.webhook.secret}")
+    String webHookSecret;
 
 
     @GetMapping("/api/me/subscription")
-    public ResponseEntity<SubscriptionResponse> getMySubscription(){
-    return ResponseEntity.ok(subscriptionService.getCurrentSubscription());
+    public ResponseEntity<SubscriptionResponse> getMySubscription() {
+        return ResponseEntity.ok(subscriptionService.getCurrentSubscription());
     }
 
     @PostMapping("/api/payment/checkout")
     public ResponseEntity<CheckoutResponse> createCheckoutResponse(
             @RequestBody CheckoutRequest checkoutRequest
-    ){
+    ) {
         return ResponseEntity.ok(paymentProcessor.createCheckoutSessionUrl(checkoutRequest));
     }
 
     @PostMapping("/api/payment/portal")
-    public ResponseEntity<PortalResponse> openCustomerPortal(){
+    public ResponseEntity<PortalResponse> openCustomerPortal() {
         return ResponseEntity.ok(paymentProcessor.openCustomerPortal());
     }
 
@@ -58,7 +58,7 @@ public class BillingController {
     public ResponseEntity<String> handlePaymentWebhooks(
             @RequestBody String payload,
             @RequestHeader("Stripe-Signature") String signHeader
-    ){
+    ) {
         try {
             Event event = Webhook.constructEvent(payload, signHeader, webHookSecret);
 
@@ -90,11 +90,69 @@ public class BillingController {
             // Pass to your processor
             paymentProcessor.handleWebhookEvent(event.getType(), stripeObject, metadata);
             return ResponseEntity.ok().build();
-
         } catch (SignatureVerificationException e) {
-            throw new RuntimeException(e);
+            log.warn("Rejected Stripe webhook: invalid signature");
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body("Invalid Stripe signature");
         }
 
+
+    }
+
+    @GetMapping("/api/payment/plans")
+    public ResponseEntity<List<AvailablePlanResponse>> getAvailablePlans() {
+        List<AvailablePlanResponse> plans = new ArrayList<>();
+
+        for (Plan plan : planRepository.findAll()) {
+            if (!Boolean.TRUE.equals(plan.getActive())
+                    || plan.getStripePriceId() == null
+                    || plan.getStripePriceId().isBlank()) {
+                continue;
+            }
+
+            try {
+                Price price = Price.retrieve(plan.getStripePriceId());
+
+                if (!Boolean.TRUE.equals(price.getActive())
+                        || price.getRecurring() == null
+                        || price.getUnitAmount() == null) {
+                    continue;
+                }
+
+                long intervalCount =
+                        price.getRecurring().getIntervalCount() == null
+                                ? 1L
+                                : price.getRecurring().getIntervalCount();
+
+                plans.add(new AvailablePlanResponse(
+                        plan.getId(),
+                        plan.getName(),
+                        price.getUnitAmount(),
+                        price.getCurrency().toUpperCase(Locale.ROOT),
+                        price.getRecurring().getInterval(),
+                        intervalCount,
+                        plan.getMaxProjects(),
+                        plan.getMaxTokensPerDay(),
+                        plan.getMaxPreviews(),
+                        plan.getUnlimitedAi()
+                ));
+            } catch (StripeException e) {
+                log.error(
+                        "Failed to load Stripe price for plan {}",
+                        plan.getId(),
+                        e
+                );
+
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_GATEWAY,
+                        "Stripe pricing is temporarily unavailable",
+                        e
+                );
+            }
+        }
+
+        return ResponseEntity.ok(plans);
     }
 
 

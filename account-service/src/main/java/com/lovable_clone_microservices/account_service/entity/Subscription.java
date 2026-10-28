@@ -17,22 +17,23 @@ import java.time.Instant;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-    public class Subscription {
+public class Subscription {
 
 
-    @ManyToOne(fetch =FetchType.LAZY)
-    @JoinColumn(nullable = false,name = "user_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "user_id")
     User user;
 
-    @ManyToOne(fetch =FetchType.LAZY)
-    @JoinColumn(nullable = false,name = "plan_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "plan_id")
     Plan plan;
 
     @Id
-     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
 
+    @Column(unique = true)
     String stripeSubscriptionId;
 
     @Enumerated(EnumType.STRING)
@@ -46,6 +47,6 @@ import java.time.Instant;
 
     @UpdateTimestamp
     Instant updatedAt;
-    Boolean cancelAtPeriodEnd=false;
+    Boolean cancelAtPeriodEnd = false;
 
 }
