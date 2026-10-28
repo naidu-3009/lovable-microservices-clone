@@ -3,20 +3,34 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/png" sizes="512x512" href="/ideastitch-icon.png" />
-    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="/ideastitch-mark.svg" />
+    <link rel="shortcut icon" type="image/svg+xml" href="/ideastitch-mark.svg" />
     <link rel="apple-touch-icon" href="/ideastitch-icon.png" />
-    <meta name="theme-color" content="#050b18" />
-    <title>IdeaStitch — Weave Ideas Into Reality</title>
-    <meta name="description" content="IdeaStitch — Weave ideas into reality with your AI application builder." />
+    <meta name="theme-color" content="#cbd0d2" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Host+Grotesk:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <script>
+      try {
+        var savedTheme = localStorage.getItem("ideastitch.theme");
+        var systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var initialTheme = savedTheme === "light" || savedTheme === "dark" ? savedTheme : (systemDark ? "dark" : "light");
+        document.documentElement.classList.toggle("dark", initialTheme === "dark");
+        document.documentElement.dataset.theme = initialTheme;
+        var themeColor = document.querySelector('meta[name="theme-color"]');
+        if (themeColor) themeColor.setAttribute("content", initialTheme === "dark" ? "#20272b" : "#cbd0d2");
+      } catch (_) {}
+    </script>
+    <title>IdeaStitch — Ideas, made tangible</title>
+    <meta name="description" content="IdeaStitch helps turn a clear application brief into a working interface with code, preview, and iteration in one workspace." />
     <meta name="author" content="IdeaStitch" />
     <meta property="og:title" content="IdeaStitch — Weave Ideas Into Reality" />
-    <meta property="og:description" content="Weave ideas into reality with IdeaStitch, your AI application builder." />
+    <meta property="og:description" content="Turn an application idea into a working interface with IdeaStitch." />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://ideastitch.in/ideastitch-logo.png" />
+    <meta property="og:image" content="https://ideastitch.in/ideastitch-icon.png" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="https://ideastitch.in/ideastitch-logo.png" />
+    <meta name="twitter:image" content="https://ideastitch.in/ideastitch-icon.png" />
   </head>
 
   <body>

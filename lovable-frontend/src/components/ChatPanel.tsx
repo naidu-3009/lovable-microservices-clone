@@ -65,7 +65,7 @@ export function ChatPanel({ messages, onSendMessage, isStreaming, isLoading, rea
   };
 
   return (
-    <div className="flex h-full flex-col bg-panel">
+    <div className="builder-chat-panel flex h-full flex-col bg-panel">
       <div className="flex h-12 shrink-0 items-center justify-between border-b border-border/70 px-4">
         <div><p className="text-sm font-semibold">Companion</p><p className="text-[11px] text-muted-foreground">Plan, build, refine</p></div>
         {isStreaming && <span className="flex items-center gap-1.5 text-[11px] font-medium text-primary"><Loader2 className="h-3 w-3 animate-spin" />Working</span>}

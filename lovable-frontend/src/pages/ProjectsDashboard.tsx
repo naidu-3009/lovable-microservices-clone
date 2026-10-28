@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowUpRight,
   Download,
@@ -10,6 +10,7 @@ import {
   Pencil,
   Plus,
   Search,
+  RefreshCw,
   Trash2,
 } from "lucide-react";
 import { api, getUserInfo, removeAuthToken, removeUserInfo } from "@/lib/api";
@@ -34,6 +35,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { IdeaStitchBrand } from "@/components/IdeaStitchBrand";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { PENDING_PROMPT_KEY, projectNameFromPrompt } from "@/lib/initial-prompt";
 
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat(undefined, {
@@ -47,18 +51,24 @@ export function ProjectsDashboard() {
   const { toast } = useToast();
   const [projects, setProjects] = useState<ProjectSummaryResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [projectLoadError, setProjectLoadError] = useState("");
   const [query, setQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<"newest" | "name">("newest");
   const [dialog, setDialog] = useState<"create" | "rename" | null>(null);
   const [name, setName] = useState("");
   const [selected, setSelected] = useState<ProjectSummaryResponse | null>(null);
   const [saving, setSaving] = useState(false);
+  const [isStartingPrompt, setIsStartingPrompt] = useState(false);
+  const promptStartAttemptedRef = useRef(false);
 
   const loadProjects = async () => {
     setLoading(true);
+    setProjectLoadError("");
     try {
       setProjects(await api.getProjects());
     } catch (error) {
       console.error("Failed to load projects:", error);
+      setProjectLoadError(error instanceof Error ? error.message : "Please refresh and try again.");
       toast({
         title: "Couldn’t load projects",
         description: error instanceof Error ? error.message : "Please refresh and try again.",
@@ -71,13 +81,45 @@ export function ProjectsDashboard() {
   useEffect(() => {
     void loadProjects();
   }, []);
-  const filtered = useMemo(
-    () =>
-      projects.filter((project) =>
-        project.name.toLowerCase().includes(query.trim().toLowerCase()),
-      ),
-    [projects, query],
-  );
+
+  // A homepage prompt survives signup/login in sessionStorage. Once the user is
+  // authenticated, create a project with a deterministic fallback name and pass
+  // the original prompt into the existing streaming workflow.
+  useEffect(() => {
+    let pendingPrompt = "";
+    try {
+      pendingPrompt = window.sessionStorage.getItem(PENDING_PROMPT_KEY) || "";
+    } catch {
+      return;
+    }
+    if (!pendingPrompt.trim() || promptStartAttemptedRef.current) return;
+
+    promptStartAttemptedRef.current = true;
+    setIsStartingPrompt(true);
+    void (async () => {
+      try {
+        const created = await api.createProject(projectNameFromPrompt(pendingPrompt));
+        window.sessionStorage.removeItem(PENDING_PROMPT_KEY);
+        navigate(`/projects/${created.projectId}`, { state: { initialPrompt: pendingPrompt } });
+      } catch (error) {
+        promptStartAttemptedRef.current = false;
+        setIsStartingPrompt(false);
+        toast({
+          title: "Couldn’t start this build",
+          description: error instanceof Error ? error.message : "Your prompt is still saved. Please try again.",
+          variant: "destructive",
+        });
+      }
+    })();
+  }, [navigate, toast]);
+  const filtered = useMemo(() => {
+    const matching = projects.filter((project) =>
+      project.name.toLowerCase().includes(query.trim().toLowerCase()),
+    );
+    return matching.sort((a, b) => sortOrder === "name"
+      ? a.name.localeCompare(b.name)
+      : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [projects, query, sortOrder]);
   const openCreate = () => {
     setName("");
     setSelected(null);
@@ -155,29 +197,12 @@ export function ProjectsDashboard() {
   };
   const user = getUserInfo();
   return (
-    <div className="app-shell">
-      <header className="sticky top-0 z-20 border-b border-border/70 bg-background/85 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-4 sm:px-7">
-          <button
-            className="flex items-center gap-3 text-left"
-            onClick={() => navigate("/projects")}
-            aria-label="IdeaStitch home"
-          >
-            <img
-              src="/ideastitch-icon.png"
-              alt=""
-              className="h-12 w-12 rounded-xl object-cover"
-            />
-            <span>
-              <span className="block text-sm font-semibold tracking-tight">
-                IdeaStitch
-              </span>
-              <span className="block text-[11px] text-muted-foreground">
-                Weave ideas into reality
-              </span>
-            </span>
-          </button>
+    <div className="app-shell industrial-app-shell projects-shell">
+      <header className="projects-header sticky top-0 z-20 border-b border-border/70 bg-background/85 backdrop-blur-xl">
+        <div className="projects-header-inner mx-auto flex h-16 max-w-[1440px] items-center justify-between px-4 sm:px-7">
+          <IdeaStitchBrand to="/projects" tagline />
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <Button
               className="hidden gap-2 sm:inline-flex"
               size="sm"
@@ -209,6 +234,9 @@ export function ProjectsDashboard() {
                   </p>
                 </div>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/billing">Plan & billing</Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={logout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign out
@@ -218,8 +246,14 @@ export function ProjectsDashboard() {
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-[1440px] px-4 py-10 sm:px-7 lg:py-14">
-        <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
+      <main className="projects-main mx-auto max-w-[1440px] px-4 py-10 sm:px-7 lg:py-14">
+        {isStartingPrompt && (
+          <div className="mb-7 flex items-center gap-3 border border-border bg-card px-4 py-3 text-sm" role="status" aria-live="polite">
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            <span>Preparing your project and handing the original prompt to the builder…</span>
+          </div>
+        )}
+        <div className="projects-heading flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
           <div>
             <p className="eyebrow mb-3">Workspace</p>
             <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -235,7 +269,7 @@ export function ProjectsDashboard() {
             New project
           </Button>
         </div>
-        <div className="mt-10 flex items-center gap-3">
+        <div className="projects-search-row mt-10 flex items-center gap-3">
           <div className="relative w-full max-w-md">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -249,9 +283,14 @@ export function ProjectsDashboard() {
           <span className="hidden text-xs text-muted-foreground sm:block">
             {projects.length} project{projects.length === 1 ? "" : "s"}
           </span>
+          <label className="sr-only" htmlFor="project-sort">Sort projects</label>
+          <select id="project-sort" className="project-sort" value={sortOrder} onChange={(event) => setSortOrder(event.target.value as "newest" | "name")}>
+            <option value="newest">Newest first</option>
+            <option value="name">Name A–Z</option>
+          </select>
         </div>
         {loading ? (
-          <div className="grid grid-cols-1 gap-4 pt-8 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="projects-grid grid grid-cols-1 gap-4 pt-8 sm:grid-cols-2 xl:grid-cols-3">
             {[1, 2, 3].map((item) => (
               <div
                 key={item}
@@ -259,10 +298,20 @@ export function ProjectsDashboard() {
               />
             ))}
           </div>
+        ) : projectLoadError ? (
+          <div className="projects-load-error" role="alert">
+            <div>
+              <h2>Projects couldn’t load.</h2>
+              <p>{projectLoadError}</p>
+            </div>
+            <Button variant="outline" onClick={() => void loadProjects()}>
+              <RefreshCw className="h-4 w-4" /> Try again
+            </Button>
+          </div>
         ) : filtered.length === 0 ? (
           <EmptyProjects searching={Boolean(query)} onCreate={openCreate} />
         ) : (
-          <div className="grid grid-cols-1 gap-4 pt-8 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="projects-grid grid grid-cols-1 gap-4 pt-8 sm:grid-cols-2 xl:grid-cols-3">
             {filtered.map((project) => (
               <ProjectCard
                 key={project.projectId}
@@ -302,7 +351,7 @@ function ProjectCard({
   onDelete: () => void;
 }) {
   return (
-    <article className="surface group overflow-hidden rounded-xl transition duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_20px_50px_hsl(222_28%_3%_/_0.34)]">
+    <article className="project-card surface group overflow-hidden rounded-xl transition duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_20px_50px_hsl(222_28%_3%_/_0.34)]">
       <button className="block w-full text-left" onClick={onOpen}>
         <div
           className="relative h-28 overflow-hidden"
@@ -380,7 +429,7 @@ function EmptyProjects({
   onCreate: () => void;
 }) {
   return (
-    <div className="surface mt-8 flex min-h-[310px] flex-col items-center justify-center rounded-xl px-6 text-center">
+    <div className="projects-empty surface mt-8 flex min-h-[310px] flex-col items-center justify-center rounded-xl px-6 text-center">
       <span className="grid h-12 w-12 place-items-center rounded-xl border border-border bg-muted text-primary">
         <FolderPlus className="h-5 w-5" />
       </span>

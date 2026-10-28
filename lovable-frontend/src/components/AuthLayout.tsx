@@ -1,5 +1,7 @@
-import { Sparkles } from "lucide-react";
 import { ReactNode } from "react";
+import { ArrowUpRight, Braces, Code2, Eye, Workflow } from "lucide-react";
+import { IdeaStitchBrand } from "@/components/IdeaStitchBrand";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -9,66 +11,57 @@ interface AuthLayoutProps {
 
 export function AuthLayout({ children, title, description }: AuthLayoutProps) {
   return (
-    <main className="relative grid min-h-screen overflow-hidden bg-background lg:grid-cols-[1.05fr_0.95fr]">
-      <section className="relative hidden overflow-hidden border-r border-border/60 p-12 lg:flex lg:flex-col">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,hsl(var(--primary)/0.16),transparent_28rem),radial-gradient(circle_at_75%_75%,hsl(210_80%_58%/0.10),transparent_25rem)]" />
-        <div className="relative flex items-center gap-3">
-          <img
-            src="/ideastitch-icon.png"
-            alt=""
-            className="h-16 w-16 shrink-0 rounded-xl object-cover shadow-[0_0_24px_hsl(var(--primary)/0.14)]"
-          />
-          <span>
-            <span className="block text-sm font-semibold tracking-tight">
-              IdeaStitch
-            </span>
-            <span className="block text-[11px] text-muted-foreground">
-              Weave ideas into reality
-            </span>
-          </span>
+    <main className="auth-shell">
+      <section className="auth-story" aria-label="About IdeaStitch">
+        <div className="auth-story-header">
+          <IdeaStitchBrand tagline />
+          <span className="auth-document-id">ACCESS DECK / 01</span>
         </div>
-        <div className="relative my-auto max-w-md">
-          <p className="eyebrow mb-5">AI application builder</p>
-          <h2 className="text-4xl font-semibold leading-tight tracking-tight text-foreground">
-            From a clear idea to a working product.
-          </h2>
-          <p className="mt-5 max-w-sm text-base leading-7 text-muted-foreground">
-            Collaborate with an AI that can understand your project, change the
-            code, and help you inspect each result.
-          </p>
-          <div className="mt-10 flex gap-3 rounded-xl border border-border/70 bg-card/70 p-4 text-sm text-muted-foreground shadow-2xl">
-            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            <span>
-              Describe the outcome. IdeaStitch helps bring it to life.
-            </span>
+        <div className="auth-story-content">
+          <p className="micro-label"><span className="signal-dot" /> IDEASTITCH / BUILD SYSTEM</p>
+          <h2>From a clear idea<br /><span>to a working product.</span></h2>
+          <p className="auth-story-copy">Your project, source files, and preview belong in the same workspace. Start with a brief, then iterate on the result.</p>
+          <div className="auth-sequence" aria-label="IdeaStitch workflow">
+            <div><span className="auth-sequence-icon"><Workflow size={16} /></span><span>Describe</span></div>
+            <span className="auth-sequence-line" />
+            <div><span className="auth-sequence-icon"><Braces size={16} /></span><span>Generate</span></div>
+            <span className="auth-sequence-line" />
+            <div><span className="auth-sequence-icon"><Eye size={16} /></span><span>Inspect</span></div>
+          </div>
+          <div className="auth-workspace-preview" aria-hidden="true">
+            <div className="auth-preview-code">
+              <div className="auth-preview-window-bar"><span /><span /><span /><b>src / App.tsx</b></div>
+              <div className="auth-code-lines"><i /><i /><i /><i /><i /></div>
+            </div>
+            <div className="auth-preview-canvas">
+              <div className="auth-preview-canvas-top"><span /><span /><span /></div>
+              <div className="auth-preview-hero-line" />
+              <div className="auth-preview-short-line" />
+              <div className="auth-preview-cards"><i /><i /><i /></div>
+              <div className="auth-preview-chart"><i /><i /><i /><i /><i /><i /><i /></div>
+            </div>
           </div>
         </div>
+        <div className="auth-story-foot"><span><Code2 size={14} /> CODE / PREVIEW / ITERATION</span><span>IDEASTITCH.IN</span></div>
+        <div className="auth-story-geometry" aria-hidden="true"><span /><span /><span /><span /></div>
       </section>
-      <section className="relative flex items-center justify-center px-5 py-10 sm:px-8">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_90%_0%,hsl(var(--primary)/0.10),transparent_22rem)] lg:hidden" />
-        <div className="relative w-full max-w-[25rem]">
-          <div className="mb-10 flex items-center gap-3 lg:hidden">
-            <img
-              src="/ideastitch-icon.png"
-              alt=""
-              className="h-14 w-14 rounded-xl object-cover"
-            />
-            <span>
-              <span className="block font-semibold tracking-tight">
-                IdeaStitch
-              </span>
-              <span className="block text-[11px] text-muted-foreground">
-                Weave ideas into reality
-              </span>
-            </span>
-          </div>
-          <p className="eyebrow mb-3">Welcome</p>
-          <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            {description}
-          </p>
-          <div className="surface mt-8 rounded-2xl p-6 sm:p-7">{children}</div>
+
+      <section className="auth-form-stage">
+        <div className="auth-stage-header">
+          <span className="auth-document-id">SECURE ACCESS <span className="micro-divider">/</span> ACCOUNT</span>
+          <ThemeToggle />
         </div>
+        <div className="auth-form-content">
+          <p className="micro-label"><span className="signal-dot" /> WELCOME</p>
+          <h1>{title}</h1>
+          <p className="auth-form-description">{description}</p>
+          <div className="auth-form-deck">
+            <div className="auth-form-deck-head"><span>IDENTITY CHECK</span><span>FORM / 01</span></div>
+            {children}
+          </div>
+          <p className="auth-privacy-note"><span className="auth-privacy-dot" /> Your workspace remains tied to your account.</p>
+        </div>
+        <div className="auth-mobile-foot"><IdeaStitchBrand compact /><span>ACCESS / 01</span><ArrowUpRight size={15} /></div>
       </section>
     </main>
   );

@@ -1,0 +1,184 @@
+import { useState, useEffect } from "react";
+import { Play, Loader2, ExternalLink, RefreshCw, Globe } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { api, PREVIEW_URL_KEY } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+
+import {
+  RuntimeErrorAlert,
+  RuntimeError,
+} from "@/components/RuntimeErrorAlert";
+
+interface PreviewPanelProps {
+  projectId: string;
+  runtimeError: RuntimeError | null;
+  onDismiss: () => void;
+  onFix: (error: RuntimeError) => void;
+}
+
+export function PreviewPanel({
+  projectId,
+  runtimeError,
+  onDismiss,
+  onFix,
+}: PreviewPanelProps) {
+  const [previewState, setPreviewState] = useState<{
+    projectId: string;
+    url: string | null;
+  }>({
+    projectId,
+    url: null,
+  });
+
+  const previewUrl =
+    previewState.projectId === projectId ? previewState.url : null;
+
+  const [isDeploying, setIsDeploying] = useState(false);
+  const { toast } = useToast();
+
+  const storageKey = `${PREVIEW_URL_KEY}:${projectId}`;
+
+  useEffect(() => {
+    let url = localStorage.getItem(storageKey);
+
+    // Migrate the old URL only when it belongs to this project.
+    if (!url) {
+      const legacyUrl = localStorage.getItem(PREVIEW_URL_KEY);
+
+      if (legacyUrl) {
+        try {
+          if (new URL(legacyUrl).hostname.startsWith(`project-${projectId}.`)) {
+            url = legacyUrl;
+          }
+        } catch {
+          // Ignore invalid legacy URLs.
+        }
+      }
+    }
+
+    setPreviewState({ projectId, url });
+  }, [projectId, storageKey]);
+
+  useEffect(() => {
+    if (previewState.projectId !== projectId) return;
+
+    if (previewState.url) {
+      localStorage.setItem(storageKey, previewState.url);
+    }
+  }, [previewState, projectId, storageKey]);
+
+  const handleDeploy = async () => {
+    setIsDeploying(true);
+
+    try {
+      const response = await api.deploy(projectId);
+      setPreviewState({ projectId, url: response.previewUrl });
+      toast({
+        title: "Deployment successful",
+        description: "Your preview is now ready",
+      });
+    } catch (error) {
+      toast({
+        title: "Deployment failed",
+        description:
+          error instanceof Error ? error.message : "Something went wrong",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeploying(false);
+    }
+  };
+
+  const [refreshKey, setRefreshKey] = useState(0);
+  const handleRefresh = () => setRefreshKey((key) => key + 1);
+
+  return (
+    <div className="builder-preview-panel flex flex-col h-full bg-background">
+      {/* URL Bar */}
+      <div className="h-12 shrink-0 flex items-center gap-2 px-3 border-b border-border/70 bg-panel">
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleRefresh}
+            disabled={!previewUrl}
+            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+
+        <div className="flex-1 flex items-center h-8 px-3 rounded-md border border-border/60 bg-muted/40 text-sm text-muted-foreground">
+          <Globe className="w-3.5 h-3.5 mr-2 shrink-0" />
+          <span className="truncate">
+            {previewUrl || "Click 'Run Preview' to deploy"}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1">
+          {previewUrl && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => window.open(previewUrl, "_blank")}
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+            </Button>
+          )}
+          <Button
+            onClick={handleDeploy}
+            disabled={isDeploying}
+            size="sm"
+            className="h-7 px-3 bg-primary hover:bg-primary/90 text-xs font-medium"
+          >
+            {isDeploying ? (
+              <>
+                <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
+                Deploying
+              </>
+            ) : (
+              <>
+                <Play className="w-3 h-3 mr-1.5" />
+                Run Preview
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {/* Preview Area */}
+      <div className="flex-1 bg-[#1a1a1a]">
+        {previewUrl ? (
+          <iframe
+            key={refreshKey}
+            src={previewUrl}
+            className="w-full h-full border-0"
+            title="Preview"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full text-center p-8">
+            <div className="w-16 h-16 rounded-xl border border-border bg-muted/30 flex items-center justify-center mb-4">
+              <Globe className="w-8 h-8 text-muted-foreground/50" />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Your preview will appear here
+            </p>
+            <p className="mt-1 max-w-xs text-xs leading-5 text-muted-foreground">
+              Run a preview after your companion has generated or updated the
+              project.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Error Alert Overlay - Inside the Preview Panel */}
+      <RuntimeErrorAlert
+        error={runtimeError}
+        onDismiss={onDismiss}
+        onFix={onFix}
+      />
+    </div>
+  );
+}

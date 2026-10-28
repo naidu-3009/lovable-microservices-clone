@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   Code,
   Sparkles,
@@ -52,13 +52,17 @@ import {
 import { generateGradient, cn } from "@/lib/utils";
 import { ProjectResponse } from "@/lib/types";
 import { ShareDialog } from "@/components/ShareDialog";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 type ViewMode = "code" | "preview";
 
 export function ProjectView() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  const initialPromptHandledRef = useRef(false);
+  const initialPrompt = (location.state as { initialPrompt?: string } | null)?.initialPrompt;
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -229,6 +233,15 @@ export function ProjectView() {
     [projectId, toast],
   );
 
+  // Consume the original homepage prompt only after project/history loading is
+  // complete, preventing it from racing with the initial history state update.
+  useEffect(() => {
+    if (!initialPrompt?.trim() || !projectId || !project || isLoadingHistory || initialPromptHandledRef.current) return;
+    initialPromptHandledRef.current = true;
+    navigate(location.pathname, { replace: true, state: null });
+    handleSendMessage(initialPrompt.trim());
+  }, [initialPrompt, projectId, project, isLoadingHistory, handleSendMessage, navigate, location.pathname]);
+
   // Listen for runtime errors from the preview iframe
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -353,10 +366,10 @@ Please analyze this error and fix the code to resolve it.`;
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-background">
+    <div className="builder-shell h-screen flex flex-col overflow-hidden bg-background">
       {/* Header */}
-      <header className="shrink-0 border-b border-border/70 bg-background/90 px-3 py-2 backdrop-blur-xl sm:px-4">
-        <div className="flex min-h-9 items-center justify-between gap-2">
+      <header className="builder-header shrink-0 border-b border-border/70 bg-background/90 px-3 py-2 backdrop-blur-xl sm:px-4">
+        <div className="builder-toolbar flex min-h-9 items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <Button
               variant="ghost"
@@ -419,9 +432,10 @@ Please analyze this error and fix the code to resolve it.`;
 
           <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 md:flex">
             {/* View Mode Toggle */}
-            <div className="flex items-center bg-muted/30 rounded-lg p-0.5 mx-2">
+            <div className="builder-view-mode flex items-center bg-muted/30 rounded-lg p-0.5 mx-2" role="group" aria-label="Workspace view">
               <button
                 onClick={() => setViewMode("preview")}
+                aria-pressed={viewMode === "preview"}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all rounded-md ${
                   viewMode === "preview"
                     ? "bg-primary text-primary-foreground"
@@ -433,6 +447,7 @@ Please analyze this error and fix the code to resolve it.`;
               </button>
               <button
                 onClick={() => setViewMode("code")}
+                aria-pressed={viewMode === "code"}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all rounded-md ${
                   viewMode === "code"
                     ? "bg-primary text-primary-foreground"
@@ -446,6 +461,7 @@ Please analyze this error and fix the code to resolve it.`;
           </div>
 
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            <ThemeToggle />
             {project && (
               <div className="flex items-center gap-2 px-2 py-1 bg-muted/30 rounded-full border border-border/50">
                 <Avatar className="h-6 w-6 border border-primary/20">
@@ -514,7 +530,7 @@ Please analyze this error and fix the code to resolve it.`;
             </Button>
           </div>
         </div>
-        <div className="mt-2 flex items-center rounded-lg border border-border/70 bg-muted/30 p-0.5 md:hidden">
+        <div className="builder-mobile-tabs mt-2 flex items-center rounded-lg border border-border/70 bg-muted/30 p-0.5 md:hidden" role="group" aria-label="Mobile workspace panels">
           <button
             onClick={() => setMobilePane("chat")}
             className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium ${mobilePane === "chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
@@ -546,7 +562,7 @@ Please analyze this error and fix the code to resolve it.`;
       </header>
 
       {/* Main Content */}
-      <div className="relative flex-1 overflow-hidden">
+      <div className="builder-main relative flex-1 overflow-hidden">
         <ResizablePanelGroup direction="horizontal" className="h-full">
           {/* Chat Panel */}
           <ResizablePanel
@@ -601,7 +617,7 @@ Please analyze this error and fix the code to resolve it.`;
           </ResizablePanel>
         </ResizablePanelGroup>
         {mobilePane === "chat" && (
-          <div className="absolute inset-x-0 bottom-0 top-[96px] z-10 md:hidden">
+          <div className="absolute inset-0 z-10 md:hidden">
             <ChatPanel
               messages={messages}
               onSendMessage={handleSendMessage}

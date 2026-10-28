@@ -93,7 +93,7 @@ export function PreviewPanel({
   const handleRefresh = () => setRefreshKey((key) => key + 1);
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="builder-preview-panel flex flex-col h-full bg-background">
       {/* URL Bar */}
       <div className="h-12 shrink-0 flex items-center gap-2 px-3 border-b border-border/70 bg-panel">
         <div className="flex items-center gap-1">

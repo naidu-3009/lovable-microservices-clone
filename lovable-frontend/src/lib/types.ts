@@ -106,3 +106,19 @@ export interface AuthResponse {
     plan?: unknown;
   };
 }
+
+
+export interface BillingPlan {
+  id?: number;
+  name?: string | null;
+  maxProjects?: number | null;
+  maxTokensPerDay?: number | null;
+  unlimitedAi?: boolean | null;
+  price?: string | number | null;
+}
+
+export interface CurrentSubscriptionResponse {
+  plan?: BillingPlan | null;
+  status?: string | null;
+  periodEnd?: string | null;
+}

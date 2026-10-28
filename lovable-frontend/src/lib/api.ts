@@ -1,4 +1,4 @@
-import { ChatMessage, DeployResponse, FileNode, LoginCredentials, LoginResponse, ProjectSummaryResponse, ProjectRequest, ProjectResponse, ProjectMember, ProjectRole, SignupRequest, AuthResponse } from "./types";
+import { ChatMessage, DeployResponse, FileNode, LoginCredentials, LoginResponse, ProjectSummaryResponse, ProjectRequest, ProjectResponse, ProjectMember, ProjectRole, SignupRequest, AuthResponse, CurrentSubscriptionResponse } from "./types";
 
 const BASE_URL = "https://api.ideastitch.in";
 
@@ -98,6 +98,31 @@ function buildFileTree(paths: { path: string }[]): FileNode[] {
 }
 
 export const api = {
+  async getCurrentSubscription(): Promise<CurrentSubscriptionResponse> {
+    const response = await fetch(`${BASE_URL}/api/v1/account/api/me/subscription`, {
+      headers: { ...getAuthHeaders() },
+    });
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error || `Failed to fetch subscription (${response.status})`);
+    }
+    return response.json();
+  },
+
+  async openBillingPortal(): Promise<{ portalUrl: string }> {
+    const response = await fetch(`${BASE_URL}/api/v1/account/api/payment/portal`, {
+      method: "POST",
+      headers: { ...getAuthHeaders() },
+    });
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error || `Could not open billing portal (${response.status})`);
+    }
+    const result = await response.json() as { portalUrl?: string };
+    if (!result.portalUrl) throw new Error("Billing portal URL was not returned by the server.");
+    return { portalUrl: result.portalUrl };
+  },
+
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
     const response = await fetch(`${BASE_URL}/api/v1/account/auth/login`, {
       method: "POST",

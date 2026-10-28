@@ -93,7 +93,8 @@ export default {
         pulse: "pulse 1s ease-in-out infinite",
       },
       fontFamily: {
-        mono: ["JetBrains Mono", "Fira Code", "Monaco", "Consolas", "monospace"],
+        sans: ["Industrial Host", "Host Grotesk", "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ["Industrial Plex", "IBM Plex Mono", "ui-monospace", "monospace"],
       },
     },
   },

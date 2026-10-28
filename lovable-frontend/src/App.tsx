@@ -9,27 +9,34 @@ import { ProjectView } from "./pages/ProjectView";
 import { ProjectsDashboard } from "./pages/ProjectsDashboard";
 import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
+import Billing from "./pages/Billing";
+import CheckoutReturn from "./pages/CheckoutReturn";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<LoginModal />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/projects" element={<ProjectsDashboard />} />
-          <Route path="/projects/:projectId" element={<ProjectView />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<LoginModal />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/projects" element={<ProjectsDashboard />} />
+            <Route path="/projects/:projectId" element={<ProjectView />} />
+            <Route path="/billing" element={<Billing />} />
+            <Route path="/success.html" element={<CheckoutReturn success />} />
+            <Route path="/cancel.html" element={<CheckoutReturn success={false} />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;
