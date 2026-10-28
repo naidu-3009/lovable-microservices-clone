@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ClosedEyeIcon } from "@/components/ClosedEyeIcon";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { Eye, Loader2, LockKeyhole, UserRound } from "lucide-react";
 import { api, setAuthToken, setUserInfo } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,20 @@ export function LoginModal() {
   const passwordRef = useRef<HTMLInputElement>(null);
   const selectionRef = useRef<number | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const routeState = location.state as { reason?: string } | null;
+    const expiredInQuery = new URLSearchParams(location.search).get("reason") === "session-expired";
+    if (routeState?.reason === "session-expired" || expiredInQuery) {
+      toast({
+        title: "Your session expired",
+        description: "Sign in again to protect your workspace and continue building.",
+        variant: "destructive",
+      });
+    }
+  }, [location.key, location.search, location.state, toast]);
 
   useEffect(() => {
     if (selectionRef.current === null) return;
@@ -45,7 +58,12 @@ export function LoginModal() {
       setAuthToken(response.token);
       if (response.user) setUserInfo(response.user);
       toast({ title: "Welcome back", description: "Your workspace is ready." });
-      navigate("/projects");
+      const routeState = location.state as { from?: unknown } | null;
+      const requestedDestination = typeof routeState?.from === "string" ? routeState.from : "";
+      const destination = requestedDestination.startsWith("/") && !requestedDestination.startsWith("/login")
+        ? requestedDestination
+        : "/projects";
+      navigate(destination, { replace: true });
     } catch (error) {
       toast({ title: "Sign-in failed", description: error instanceof Error ? error.message : "Check your credentials and try again.", variant: "destructive" });
     } finally {

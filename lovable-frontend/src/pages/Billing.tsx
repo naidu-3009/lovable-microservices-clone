@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowUpRight, CalendarClock, CheckCircle2, CreditCard, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
 import { api, isAuthenticated } from "@/lib/api";
-import type { CurrentSubscriptionResponse } from "@/lib/types";
+import type { AvailablePlan, CurrentSubscriptionResponse } from "@/lib/types";
 import { IdeaStitchBrand } from "@/components/IdeaStitchBrand";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
@@ -15,10 +15,28 @@ function displayDate(value?: string | null) {
   return new Intl.DateTimeFormat(undefined, { month: "long", day: "numeric", year: "numeric" }).format(date);
 }
 
+function formatPrice(amountMinor: number, currency: string) {
+  try {
+    return new Intl.NumberFormat("en-IN", { style: "currency", currency: currency.toUpperCase(), maximumFractionDigits: 2 }).format(amountMinor / 100);
+  } catch {
+    return `${currency.toUpperCase()} ${(amountMinor / 100).toFixed(2)}`;
+  }
+}
+
+function billingInterval(interval: string, count: number) {
+  const intervalCount = Math.max(1, count || 1);
+  if (interval === "month") return intervalCount === 1 ? "per month" : `every ${intervalCount} months`;
+  if (interval === "year") return intervalCount === 1 ? "per year" : `every ${intervalCount} years`;
+  if (interval === "week") return intervalCount === 1 ? "per week" : `every ${intervalCount} weeks`;
+  if (interval === "day") return intervalCount === 1 ? "per day" : `every ${intervalCount} days`;
+  return `every ${intervalCount} ${interval}${intervalCount === 1 ? "" : "s"}`;
+}
+
 export default function Billing() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [subscription, setSubscription] = useState<CurrentSubscriptionResponse | null>(null);
+  const [planCatalog, setPlanCatalog] = useState<AvailablePlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [openingPortal, setOpeningPortal] = useState(false);
@@ -28,8 +46,12 @@ export default function Billing() {
     setLoadError("");
     refresh ? setRefreshing(true) : setLoading(true);
     try {
-      const result = await api.getCurrentSubscription();
+      const [result, availablePlans] = await Promise.all([
+        api.getCurrentSubscription(),
+        api.getAvailablePlans().catch(() => [] as AvailablePlan[]),
+      ]);
       setSubscription(result);
+      setPlanCatalog(availablePlans);
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : "Could not load billing details.");
     } finally {
@@ -64,6 +86,11 @@ export default function Billing() {
 
   const plan = subscription?.plan;
   const periodEnd = displayDate(subscription?.periodEnd);
+  const stripePlan = plan?.id == null ? undefined : planCatalog.find((item) => item.id === plan.id);
+  const displayPlanName = plan?.name?.replace(/\s+plan$/i, "").trim() || plan?.name;
+  const priceLabel = stripePlan
+    ? `${formatPrice(stripePlan.unitAmountMinor, stripePlan.currency)} / ${billingInterval(stripePlan.interval, stripePlan.intervalCount)}`
+    : plan?.price != null && String(plan.price).trim() !== "" ? String(plan.price) : "";
 
   return (
     <div className="billing-shell industrial-app-shell">
@@ -79,7 +106,7 @@ export default function Billing() {
 
       <main className="billing-main">
         <div className="billing-page-heading">
-          <p className="micro-label"><span className="signal-dot" /> ACCOUNT / BILLING</p>
+          <p className="micro-label"><span className="signal-dot" /> ACCOUNT / MY SUBSCRIPTIONS</p>
           <h1>Plan, without the paperwork.</h1>
           <p>Review the subscription status reported by your account and manage billing securely through the existing payment provider.</p>
         </div>
@@ -102,8 +129,8 @@ export default function Billing() {
               <div className="billing-panel-heading"><span className="billing-panel-icon"><CreditCard size={19} /></span><span className="micro-label">CURRENT SUBSCRIPTION</span></div>
               {plan?.name ? (
                 <>
-                  <div className="billing-plan-title-row"><h2>{plan.name}</h2><span className={`billing-status billing-status--${(subscription?.status || "unknown").toLowerCase()}`}>{subscription?.status || "Status unavailable"}</span></div>
-                  {plan.price != null && String(plan.price).trim() !== "" && <p className="billing-price">{String(plan.price)} <span>as returned by your account</span></p>}
+                  <div className="billing-plan-title-row"><h2>{displayPlanName}</h2><span className={`billing-status billing-status--${(subscription?.status || "unknown").toLowerCase()}`}>{subscription?.status || "Status unavailable"}</span></div>
+                  {priceLabel && <p className="billing-price">{priceLabel} <span>{stripePlan ? "from the Stripe-linked plan catalog" : "price not included in the account response"}</span></p>}
                   <div className="billing-facts">
                     <div><span>Project allowance</span><strong>{plan.maxProjects == null ? "Not provided" : plan.maxProjects}</strong></div>
                     <div><span>AI usage</span><strong>{plan.unlimitedAi ? "Unlimited" : plan.maxTokensPerDay == null ? "Not provided" : `${plan.maxTokensPerDay.toLocaleString()} tokens / day`}</strong></div>

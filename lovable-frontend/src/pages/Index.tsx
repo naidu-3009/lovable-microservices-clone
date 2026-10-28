@@ -58,6 +58,7 @@ export default function Index() {
         <nav className="site-nav" aria-label="Main navigation">
           <a href="#how-it-works" className="site-nav-link">How it works</a>
           <a href="#capabilities" className="site-nav-link">Capabilities</a>
+          <Link to="/pricing" className="site-nav-link">Pricing</Link>
           <a href="#builder" className="site-nav-link">The workflow</a>
         </nav>
         <div className="site-header-actions">
@@ -183,7 +184,7 @@ export default function Index() {
       </main>
 
       <footer className="site-footer">
-        <div className="footer-main"><div className="footer-brand"><IdeaStitchBrand tagline /><p>Weave a thought into something you can test, inspect, and improve.</p></div><div className="footer-column"><span>PRODUCT</span><a href="#how-it-works">How it works</a><a href="#capabilities">Capabilities</a><a href="#builder">Start building</a></div><div className="footer-column"><span>ACCOUNT</span><Link to="/login">Sign in</Link><Link to="/signup">Create account</Link><Link to="/projects">Projects</Link></div><div className="footer-column"><span>WORKSPACE</span><span className="footer-detail"><FileCode2 size={14} /> Source files</span><span className="footer-detail"><Eye size={14} /> Live preview</span><span className="footer-detail"><Code2 size={14} /> Code inspection</span></div></div>
+        <div className="footer-main"><div className="footer-brand"><IdeaStitchBrand tagline /><p>Weave a thought into something you can test, inspect, and improve.</p></div><div className="footer-column"><span>PRODUCT</span><a href="#how-it-works">How it works</a><a href="#capabilities">Capabilities</a><Link to="/pricing">Pricing & plans</Link><a href="#builder">Start building</a></div><div className="footer-column"><span>ACCOUNT</span><Link to="/login">Sign in</Link><Link to="/signup">Create account</Link><Link to="/projects">Projects</Link></div><div className="footer-column"><span>WORKSPACE</span><span className="footer-detail"><FileCode2 size={14} /> Source files</span><span className="footer-detail"><Eye size={14} /> Live preview</span><span className="footer-detail"><Code2 size={14} /> Code inspection</span></div></div>
         <div className="footer-bottom"><span>© {new Date().getFullYear()} IdeaStitch</span><span>IDEASTITCH / IDEAS, MADE TANGIBLE</span><a href="#hero-title">Back to top ↑</a></div>
       </footer>
     </div>

@@ -19,13 +19,28 @@ export default function CheckoutReturn({ success }: { success: boolean }) {
       setError("Sign in to check the subscription linked to this account.");
       return;
     }
+
     setLoading(true);
     setError("");
+    let lastIssue = "";
     try {
-      const current = await api.getCurrentSubscription();
-      setSubscription(current);
-    } catch (issue) {
-      setError(issue instanceof Error ? issue.message : "The billing status could not be checked yet.");
+      // Stripe sends a verified webhook to the account service asynchronously.
+      // Poll the account API briefly instead of treating the return URL as proof.
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        try {
+          const current = await api.getCurrentSubscription();
+          setSubscription(current);
+          const status = current.status?.toUpperCase();
+          if (current.plan?.name && (status === "ACTIVE" || status === "TRAILING")) {
+            lastIssue = "";
+            return;
+          }
+        } catch (issue) {
+          lastIssue = issue instanceof Error ? issue.message : "The billing status could not be checked yet.";
+        }
+        if (attempt < 7) await new Promise((resolve) => window.setTimeout(resolve, 1_500));
+      }
+      setError(lastIssue || "Stripe returned you to IdeaStitch, but the account service has not confirmed an active subscription yet. You can check again in a moment.");
     } finally {
       setLoading(false);
     }
@@ -37,7 +52,7 @@ export default function CheckoutReturn({ success }: { success: boolean }) {
 
   const activePlanName = subscription?.plan?.name;
   const activeStatus = subscription?.status?.toUpperCase();
-  const confirmed = Boolean(activePlanName && activeStatus === "ACTIVE");
+  const confirmed = Boolean(activePlanName && (activeStatus === "ACTIVE" || activeStatus === "TRAILING"));
 
   return (
     <div className="checkout-return-shell industrial-app-shell">
@@ -55,14 +70,14 @@ export default function CheckoutReturn({ success }: { success: boolean }) {
           <p className="checkout-return-copy">
             {success
               ? confirmed
-                ? `The account service reports your ${activePlanName} plan as active. You're ready to continue building.`
+                ? `The account service confirms your ${activePlanName} subscription is active. You're ready to continue building.`
                 : "Stripe returned you to IdeaStitch. Subscription activation is confirmed only when the account service reports the updated status."
               : "No successful subscription change is confirmed from this return. You can go back to your projects and continue building."}
           </p>
           {success && (
             <div className="checkout-status-detail" role={error ? "alert" : "status"} aria-live="polite">
               {loading ? <Loader2 className="animate-spin" size={17} /> : error ? <CircleAlert size={17} /> : <CheckCircle2 size={17} />}
-              <span>{loading ? "Checking subscription status…" : error ? error : confirmed ? `Status: ${activeStatus}` : subscription ? `Current status: ${activeStatus || "not provided"}. The account service has not confirmed an active plan yet.` : "Subscription status has not been confirmed."}</span>
+              <span>{loading ? "Verifying payment with the account service…" : error ? error : confirmed ? `Verified account status: ${activeStatus}` : subscription ? `Current status: ${activeStatus || "not provided"}. The account service has not confirmed an active plan yet.` : "Subscription status has not been confirmed."}</span>
             </div>
           )}
           <div className="checkout-return-actions">
@@ -73,7 +88,7 @@ export default function CheckoutReturn({ success }: { success: boolean }) {
           </div>
           <Link to="/" className="checkout-return-home"><ArrowLeft size={14} /> Back to homepage</Link>
         </section>
-        <footer className="billing-footer"><span>IDEASTITCH / SECURE CHECKOUT RETURN</span><Link to="/billing">Plan & billing</Link></footer>
+        <footer className="billing-footer"><span>IDEASTITCH / SECURE CHECKOUT RETURN</span><Link to="/">Back to IdeaStitch</Link></footer>
       </main>
     </div>
   );

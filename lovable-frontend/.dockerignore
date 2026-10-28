@@ -3,3 +3,8 @@ dist/
 .git/
 .vite/
 *.log
+
+# Never copy local configuration files into the image
+.env
+.env.*
+!.env.example

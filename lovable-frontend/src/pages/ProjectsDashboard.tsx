@@ -13,7 +13,7 @@ import {
   RefreshCw,
   Trash2,
 } from "lucide-react";
-import { api, getUserInfo, removeAuthToken, removeUserInfo } from "@/lib/api";
+import { api, clearAuthSession, getUserInfo } from "@/lib/api";
 import { ProjectSummaryResponse } from "@/lib/types";
 import { generateGradient } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -191,8 +191,7 @@ export function ProjectsDashboard() {
     }
   };
   const logout = () => {
-    removeAuthToken();
-    removeUserInfo();
+    clearAuthSession();
     navigate("/login");
   };
   const user = getUserInfo();
@@ -235,7 +234,7 @@ export function ProjectsDashboard() {
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link to="/billing">Plan & billing</Link>
+                  <Link to="/billing">My subscriptions</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={logout}>
                   <LogOut className="mr-2 h-4 w-4" />

@@ -74,8 +74,8 @@ export function PreviewPanel({
       const response = await api.deploy(projectId);
       setPreviewState({ projectId, url: response.previewUrl });
       toast({
-        title: "Deployment successful",
-        description: "Your preview is now ready",
+        title: "Preview ready",
+        description: "The preview runner is responding and the URL is available.",
       });
     } catch (error) {
       toast({

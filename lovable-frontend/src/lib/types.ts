@@ -122,3 +122,20 @@ export interface CurrentSubscriptionResponse {
   status?: string | null;
   periodEnd?: string | null;
 }
+
+
+/** Public, Stripe-backed plan catalog returned by the account service.
+ * `unitAmountMinor` is Stripe's amount in the currency's smallest unit.
+ */
+export interface AvailablePlan {
+  id: number;
+  name: string;
+  unitAmountMinor: number;
+  currency: string;
+  interval: string;
+  intervalCount: number;
+  maxProjects?: number | null;
+  maxTokensPerDay?: number | null;
+  maxPreviews?: number | null;
+  unlimitedAi?: boolean | null;
+}

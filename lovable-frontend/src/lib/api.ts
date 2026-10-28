@@ -1,6 +1,7 @@
-import { ChatMessage, DeployResponse, FileNode, LoginCredentials, LoginResponse, ProjectSummaryResponse, ProjectRequest, ProjectResponse, ProjectMember, ProjectRole, SignupRequest, AuthResponse, CurrentSubscriptionResponse } from "./types";
+import { AvailablePlan, ChatMessage, DeployResponse, FileNode, LoginCredentials, LoginResponse, ProjectSummaryResponse, ProjectRequest, ProjectResponse, ProjectMember, ProjectRole, SignupRequest, AuthResponse, CurrentSubscriptionResponse } from "./types";
 
-const BASE_URL = "https://api.ideastitch.in";
+const DEFAULT_API_URL = "https://api.ideastitch.in";
+const BASE_URL = (import.meta.env.VITE_API_URL || DEFAULT_API_URL).trim().replace(/\/+$/, "");
 
 export const getAuthToken = () => localStorage.getItem("auth_token");
 
@@ -8,7 +9,68 @@ export const setAuthToken = (token: string) => localStorage.setItem("auth_token"
 
 export const removeAuthToken = () => localStorage.removeItem("auth_token");
 
-export const isAuthenticated = () => !!getAuthToken();
+/** Returns the JWT expiry in milliseconds. A value of 0 means the token is malformed. */
+export function getTokenExpiryMs(token = getAuthToken()): number | null {
+  if (!token) return null;
+  const parts = token.split(".");
+  if (parts.length !== 3 || !parts[1]) return 0;
+
+  try {
+    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
+    const binary = atob(padded);
+    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    const payload = JSON.parse(new TextDecoder().decode(bytes)) as { exp?: unknown };
+    return typeof payload.exp === "number" && Number.isFinite(payload.exp) ? payload.exp * 1000 : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function clearAuthSession() {
+  removeAuthToken();
+  removeUserInfo();
+}
+
+export const isAuthenticated = () => {
+  const token = getAuthToken();
+  if (!token) return false;
+  const expiry = getTokenExpiryMs(token);
+  if (expiry === 0 || (expiry !== null && expiry <= Date.now() + 5_000)) {
+    clearAuthSession();
+    return false;
+  }
+  return true;
+};
+
+function redirectForExpiredSession() {
+  clearAuthSession();
+  if (typeof window === "undefined") return;
+  const target = "/login?reason=session-expired";
+  if (`${window.location.pathname}${window.location.search}` !== target) {
+    window.location.replace(target);
+  }
+}
+
+/** Every authenticated API request shares one expiry/401 handler. */
+async function authenticatedFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+  const token = getAuthToken();
+  if (token) {
+    const expiry = getTokenExpiryMs(token);
+    if (expiry === 0 || (expiry !== null && expiry <= Date.now() + 5_000)) {
+      redirectForExpiredSession();
+      throw new Error("Your session has expired. Sign in again to continue.");
+    }
+  }
+
+  const headers = new Headers(init.headers);
+  if (token && !headers.has("Authorization")) headers.set("Authorization", `Bearer ${token}`);
+  const response = await fetch(input, { ...init, headers });
+  // This helper is only used by protected account/workspace endpoints. A 401
+  // means the stored credentials are absent, expired, or no longer accepted.
+  if (response.status === 401) redirectForExpiredSession();
+  return response;
+};
 
 const getAuthHeaders = (): HeadersInit => {
   const token = getAuthToken();
@@ -22,7 +84,13 @@ export const setUserInfo = (user: { id: number; username: string; name: string }
 
 export const getUserInfo = (): { id: number; username: string; name: string } | null => {
   const userInfo = localStorage.getItem("user_info");
-  return userInfo ? JSON.parse(userInfo) : null;
+  if (!userInfo) return null;
+  try {
+    return JSON.parse(userInfo) as { id: number; username: string; name: string };
+  } catch {
+    localStorage.removeItem("user_info");
+    return null;
+  }
 };
 
 export const removeUserInfo = () => localStorage.removeItem("user_info");
@@ -98,8 +166,39 @@ function buildFileTree(paths: { path: string }[]): FileNode[] {
 }
 
 export const api = {
+  async getAvailablePlans(): Promise<AvailablePlan[]> {
+    const response = await fetch(`${BASE_URL}/api/v1/account/api/payment/plans`, {
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error || `Could not load subscription plans (${response.status}).`);
+    }
+    const result: unknown = await response.json();
+    if (!Array.isArray(result)) throw new Error("The account service returned an invalid plan catalog.");
+    return result as AvailablePlan[];
+  },
+
+  async createCheckoutSession(planId: number): Promise<{ checkOutUrl: string }> {
+    const response = await authenticatedFetch(`${BASE_URL}/api/v1/account/api/payment/checkout`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      body: JSON.stringify({ planId }),
+    });
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error || `Could not start checkout (${response.status}).`);
+    }
+    const result = await response.json() as { checkOutUrl?: string; checkoutUrl?: string };
+    const checkOutUrl = result.checkOutUrl || result.checkoutUrl;
+    if (!checkOutUrl) throw new Error("The account service did not return a Stripe Checkout URL.");
+    const parsedUrl = new URL(checkOutUrl);
+    if (parsedUrl.protocol !== "https:") throw new Error("The checkout URL was not a secure HTTPS URL.");
+    return { checkOutUrl: parsedUrl.toString() };
+  },
+
   async getCurrentSubscription(): Promise<CurrentSubscriptionResponse> {
-    const response = await fetch(`${BASE_URL}/api/v1/account/api/me/subscription`, {
+    const response = await authenticatedFetch(`${BASE_URL}/api/v1/account/api/me/subscription`, {
       headers: { ...getAuthHeaders() },
     });
     if (!response.ok) {
@@ -110,7 +209,7 @@ export const api = {
   },
 
   async openBillingPortal(): Promise<{ portalUrl: string }> {
-    const response = await fetch(`${BASE_URL}/api/v1/account/api/payment/portal`, {
+    const response = await authenticatedFetch(`${BASE_URL}/api/v1/account/api/payment/portal`, {
       method: "POST",
       headers: { ...getAuthHeaders() },
     });
@@ -154,7 +253,7 @@ export const api = {
   },
 
   async getFiles(projectId: string): Promise<FileNode[]> {
-    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects/${projectId}/files`, {
+    const response = await authenticatedFetch(`${BASE_URL}/api/v1/workspace/projects/${projectId}/files`, {
       headers: { ...getAuthHeaders() },
     });
 
@@ -167,7 +266,7 @@ export const api = {
   },
 
   async getFileContent(projectId: string, path: string): Promise<string> {
-    const response = await fetch(
+    const response = await authenticatedFetch(
       `${BASE_URL}/api/v1/workspace/projects/${projectId}/files/content?path=${path}`,
       {
         headers: { ...getAuthHeaders() },
@@ -185,7 +284,7 @@ export const api = {
   },
 
   async deploy(projectId: string): Promise<DeployResponse> {
-    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects/${projectId}/deploy`, {
+    const response = await authenticatedFetch(`${BASE_URL}/api/v1/workspace/projects/${projectId}/deploy`, {
       method: "POST",
       headers: { ...getAuthHeaders() },
     });
@@ -199,7 +298,7 @@ export const api = {
 
 
   async getProjects(): Promise<ProjectSummaryResponse[]> {
-    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects`, {
+    const response = await authenticatedFetch(`${BASE_URL}/api/v1/workspace/projects`, {
       headers: { ...getAuthHeaders() },
     });
 
@@ -226,7 +325,7 @@ async createProject(name: string): Promise<ProjectSummaryResponse> {
     existingProjects.map((project) => project.projectId),
   );
 
-  const response = await fetch(
+  const response = await authenticatedFetch(
     `${BASE_URL}/api/v1/workspace/projects`,
     {
       method: "POST",
@@ -268,7 +367,7 @@ async createProject(name: string): Promise<ProjectSummaryResponse> {
 
 
   async getProject(id: string): Promise<ProjectResponse> {
-    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects/${id}`, {
+    const response = await authenticatedFetch(`${BASE_URL}/api/v1/workspace/projects/${id}`, {
       headers: { ...getAuthHeaders() },
     });
 
@@ -280,7 +379,7 @@ async createProject(name: string): Promise<ProjectSummaryResponse> {
   },
 
   async updateProject(id: string, name: string): Promise<ProjectResponse> {
-    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects/${id}`, {
+    const response = await authenticatedFetch(`${BASE_URL}/api/v1/workspace/projects/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       body: JSON.stringify({ name }),
@@ -294,7 +393,7 @@ async createProject(name: string): Promise<ProjectSummaryResponse> {
   },
 
   async deleteProject(id: string): Promise<void> {
-    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects/${id}`, {
+    const response = await authenticatedFetch(`${BASE_URL}/api/v1/workspace/projects/${id}`, {
       method: "DELETE",
       headers: { ...getAuthHeaders() },
     });
@@ -305,7 +404,7 @@ async createProject(name: string): Promise<ProjectSummaryResponse> {
   },
 
   async downloadProjectZip(id: string): Promise<Blob> {
-    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects/${id}/files/download-zip`, {
+    const response = await authenticatedFetch(`${BASE_URL}/api/v1/workspace/projects/${id}/files/download-zip`, {
       headers: { ...getAuthHeaders() },
     });
 
@@ -317,7 +416,7 @@ async createProject(name: string): Promise<ProjectSummaryResponse> {
   },
 
   async getProjectMembers(projectId: string): Promise<ProjectMember[]> {
-    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects/${projectId}/members`, {
+    const response = await authenticatedFetch(`${BASE_URL}/api/v1/workspace/projects/${projectId}/members`, {
       headers: { ...getAuthHeaders() },
     });
 
@@ -329,7 +428,7 @@ async createProject(name: string): Promise<ProjectSummaryResponse> {
   },
 
   async inviteMember(projectId: string, username: string, role: ProjectRole): Promise<void> {
-    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects/${projectId}/members`, {
+    const response = await authenticatedFetch(`${BASE_URL}/api/v1/workspace/projects/${projectId}/members`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       body: JSON.stringify({ username, role }),
@@ -342,7 +441,7 @@ async createProject(name: string): Promise<ProjectSummaryResponse> {
   },
 
   async updateMemberRole(projectId: string, userId: number, role: ProjectRole): Promise<void> {
-    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects/${projectId}/members/${userId}`, {
+    const response = await authenticatedFetch(`${BASE_URL}/api/v1/workspace/projects/${projectId}/members/${userId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       body: JSON.stringify({ role }),
@@ -354,7 +453,7 @@ async createProject(name: string): Promise<ProjectSummaryResponse> {
   },
 
   async removeMember(projectId: string, userId: number): Promise<void> {
-    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects/${projectId}/members/${userId}`, {
+    const response = await authenticatedFetch(`${BASE_URL}/api/v1/workspace/projects/${projectId}/members/${userId}`, {
       method: "DELETE",
       headers: { ...getAuthHeaders() },
     });
@@ -365,7 +464,7 @@ async createProject(name: string): Promise<ProjectSummaryResponse> {
   },
 
   async getChatHistory(projectId: string): Promise<ChatMessage[]> {
-    const response = await fetch(`${BASE_URL}/api/v1/intelligence/chat/projects/${projectId}`, {
+    const response = await authenticatedFetch(`${BASE_URL}/api/v1/intelligence/chat/projects/${projectId}`, {
       headers: { ...getAuthHeaders() },
     });
 
@@ -386,7 +485,7 @@ async createProject(name: string): Promise<ProjectSummaryResponse> {
   ) {
     const controller = new AbortController();
 
-    fetch(`${BASE_URL}/api/v1/intelligence/chat/stream`, {
+    authenticatedFetch(`${BASE_URL}/api/v1/intelligence/chat/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       body: JSON.stringify({ message, projectId }),
