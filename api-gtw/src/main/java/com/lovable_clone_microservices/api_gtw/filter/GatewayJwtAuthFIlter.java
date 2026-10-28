@@ -7,7 +7,6 @@ import com.lovable_clone_microservices.api_gtw.error.ApiError;
 import com.lovable_clone_microservices.api_gtw.service.JwtGatewayService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.codec.language.bm.Rule;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -19,6 +18,8 @@ import org.springframework.util.AntPathMatcher;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+
 
 @Slf4j
 @RequiredArgsConstructor
@@ -26,7 +27,7 @@ import reactor.core.publisher.Mono;
 public class GatewayJwtAuthFIlter implements GlobalFilter, Ordered {
 
     private final SecurityProperties securityProperties;
-    private final AntPathMatcher pathMatcher=new AntPathMatcher();
+    private final AntPathMatcher pathMatcher = new AntPathMatcher();
     private final JwtGatewayService jwtGatewayService;
 
 
@@ -40,13 +41,24 @@ public class GatewayJwtAuthFIlter implements GlobalFilter, Ordered {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getURI().getPath();
 
-        boolean isPublic = securityProperties.getPublicRoutes().stream()
-                .anyMatch(pattern -> pathMatcher.match(pattern, path));
+//        boolean isPublic = securityProperties.getPublicRoutes().stream()
+//                .anyMatch(pattern -> pathMatcher.match(pattern, path));
+//
+//        if (isPublic) {
+//            log.info("Public route, continue: {}", path);
+//            return chain.filter(exchange);
+//        }
+        List<String> publicRoutes = securityProperties.getPublicRoutes();
 
-        if (isPublic) {
-            log.info("Public route, continue: {}", path);
-            return chain.filter(exchange);
-        }
+        boolean isPublic = publicRoutes != null &&
+                publicRoutes.stream()
+                        .map(String::trim)
+                        .anyMatch(pattern -> pathMatcher.match(pattern, path));
+
+        log.info(
+                "Public route check: path='{}', configuredRoutes={}, matched={}",
+                path, publicRoutes, isPublic
+        );
 
         String authHeader = request.getHeaders().getFirst("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -67,7 +79,6 @@ public class GatewayJwtAuthFIlter implements GlobalFilter, Ordered {
 
         return chain.filter(exchange);
     }
-
 
 
     private Mono<Void> sendErrorResponse(ServerWebExchange exchange, HttpStatus status, String message) {
