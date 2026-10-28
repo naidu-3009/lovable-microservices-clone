@@ -31,7 +31,6 @@ public class BillingController {
     private final SubscriptionService subscriptionService;
     private final PaymentProcessor paymentProcessor;
     private final PlanRepository planRepository;
-
     @Value("${stripe.webhook.secret}")
     String webHookSecret;
 
@@ -102,57 +101,62 @@ public class BillingController {
 
     @GetMapping("/api/payment/plans")
     public ResponseEntity<List<AvailablePlanResponse>> getAvailablePlans() {
-        List<AvailablePlanResponse> plans = new ArrayList<>();
+        List<AvailablePlanResponse> result = new ArrayList<>();
 
         for (Plan plan : planRepository.findAll()) {
-            if (!Boolean.TRUE.equals(plan.getActive())
-                    || plan.getStripePriceId() == null
-                    || plan.getStripePriceId().isBlank()) {
+            if (!Boolean.TRUE.equals(plan.getActive())) {
                 continue;
             }
 
+            String priceId = plan.getStripePriceId();
+
+            if (priceId == null || !priceId.startsWith("price_")) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_GATEWAY,
+                        "Invalid Stripe Price ID for plan: " + plan.getName()
+                );
+            }
+
             try {
-                Price price = Price.retrieve(plan.getStripePriceId());
+                Price price = Price.retrieve(priceId);
 
                 if (!Boolean.TRUE.equals(price.getActive())
                         || price.getRecurring() == null
                         || price.getUnitAmount() == null) {
-                    continue;
+                    throw new ResponseStatusException(
+                            HttpStatus.BAD_GATEWAY,
+                            "Stripe recurring price is unavailable for plan: "
+                                    + plan.getName()
+                    );
                 }
 
-                long intervalCount =
-                        price.getRecurring().getIntervalCount() == null
-                                ? 1L
-                                : price.getRecurring().getIntervalCount();
+                Long count = price.getRecurring().getIntervalCount();
 
-                plans.add(new AvailablePlanResponse(
+                result.add(new AvailablePlanResponse(
                         plan.getId(),
                         plan.getName(),
                         price.getUnitAmount(),
                         price.getCurrency().toUpperCase(Locale.ROOT),
                         price.getRecurring().getInterval(),
-                        intervalCount,
+                        count == null ? 1L : count,
                         plan.getMaxProjects(),
                         plan.getMaxTokensPerDay(),
                         plan.getMaxPreviews(),
                         plan.getUnlimitedAi()
                 ));
             } catch (StripeException e) {
-                log.error(
-                        "Failed to load Stripe price for plan {}",
-                        plan.getId(),
-                        e
-                );
+                log.error("Unable to retrieve Stripe price for plan {}",
+                        plan.getId(), e);
 
                 throw new ResponseStatusException(
                         HttpStatus.BAD_GATEWAY,
-                        "Stripe pricing is temporarily unavailable",
+                        "Unable to load Stripe pricing",
                         e
                 );
             }
         }
 
-        return ResponseEntity.ok(plans);
+        return ResponseEntity.ok(result);
     }
 
 
