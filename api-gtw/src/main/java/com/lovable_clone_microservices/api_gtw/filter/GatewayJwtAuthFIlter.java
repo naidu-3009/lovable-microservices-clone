@@ -60,6 +60,12 @@ public class GatewayJwtAuthFIlter implements GlobalFilter, Ordered {
                 path, publicRoutes, isPublic
         );
 
+// Allow public routes without JWT authentication.
+        if (isPublic) {
+            log.info("Public route, continue: {}", path);
+            return chain.filter(exchange);
+        }
+
         String authHeader = request.getHeaders().getFirst("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             log.error("Missing or invalid Authorization header for path: {}", path);
