@@ -1,0 +1,157 @@
+GITHUB ACTIONS – CI/CD WORKFLOW
+
+HOW AM I DEPLOYING MY APPLICATION?
+
+3 main operations:
+
+1 . Updating the Docker image 
+→ Jib builds a new Docker image and pushes it to Docker Hub with a new tag (Git commit SHA). 
+→ It also pushes the latest tag.
+
+2 . Updating the respective Deployment's image in GKE 
+→  kubectl set image  updates the container's image reference in the GKE Deployment.
+
+3 . Replacing the Pods 
+→ Kubernetes performs a rolling update. 
+→ It gradually creates new Pods using the updated image and terminates the old Pods. 
+→ We don't manually restart each Pod.
+
+4 MAIN PARTS OF A GITHUB ACTIONS WORKFLOW
+
+1. name
+2. on
+3. env
+4. jobs
+
+1 . name
+
+→ Name of the workflow.
+
+2 . on
+
+→ Specifies when the workflow should be triggered.
+
+Example: 
+→ When code is pushed to the master branch. 
+→ When changes happen in specified directories/files.
+
+3 . env
+
+→ Constant/reusable values that we define once and use throughout the workflow.
+
+Example: 
+SERVICE_NAME: account-service 
+IMAGE_NAME: nishanthtalari/lovable-account-service
+
+4 . jobs
+
+1. Each job gets its own VM (runner) from GitHub servers.
+2. We specify which OS/environment we want using  runs-on:  inside the job. 
+   Example:  runs-on: ubuntu-latest 
+3. Each job contains multiple steps.
+4. Each step can have its own  name .
+5. Steps inside the same job execute sequentially.
+
+INSIDE EACH STEP
+
+We generally use either:
+
+A.  uses:  + optional  with: 
+
+uses: 
+→ Specifies an existing GitHub Action that should be executed on the runner. 
+→ Example:  actions/setup-java@v4  sets up Java on the runner.
+
+with: 
+→ Passes inputs/configuration to the action specified using  uses: . 
+→ Example: Specifying the Java version and distribution.
+
+B.  run:  + optional  working-directory: 
+
+Used when we want to execute our own/custom shell commands.
+
+working-directory: 
+→ Specifies the directory from which commands should execute. 
+→ Can be a relative or absolute path.
+
+run: | 
+→ Used to write multiple lines of shell commands. 
+→ The pipe ( | ) allows us to write commands on separate lines.
+
+Example:
+
+working-directory: ./account-service 
+run: | 
+command1
+command2
+command3
+
+IMPORTANT: 
+→ We don't need   \  at the end of every command.
+→ Use    \ only when continuing the SAME command across multiple lines.
+
+Example:
+
+run: | 
+command1  
+argument1  
+argument2
+
+IN SHORT:
+
+ uses:  + optional  with:  
+→ Execute an existing GitHub Action with the required inputs.
+
+ run:  + optional  working-directory:  
+→ Execute our own shell commands.
+
+NAME INSIDE JOBS / STEPS
+
+ name:  → A descriptive name. We can give it any meaningful name.
+
+→  name  can be used at workflow, job and step levels. 
+→ It is optional for individual jobs and steps.
+
+PASSING SECRET VALUES
+
+1 . Add secret values in GitHub:
+
+Repository → Settings → Secrets and variables → Actions.
+
+2 . Access them inside the workflow using:
+
+ ${{ secrets.YOUR_SECRET_NAME }} 
+
+For non-sensitive reusable values, we can use GitHub Variables:
+
+ ${{ vars.YOUR_VARIABLE_NAME }} 
+
+COMPLETE CI/CD FLOW
+
+Git push 
+↓ 
+GitHub Actions workflow gets triggered 
+↓ 
+GitHub Actions runner (VM) 
+↓ 
+Checkout code 
+↓ 
+Set up JDK 
+↓ 
+Build and install Common Library 
+↓ 
+Build Account Service using Jib 
+↓ 
+Jib builds and pushes the Docker image to Docker Hub 
+↓ 
+Authenticate with GCP 
+↓ 
+Get GKE cluster credentials 
+↓ 
+ kubectl set image  updates the Deployment 
+↓ 
+Kubernetes performs a rolling update 
+↓ 
+Old Pods are gradually replaced by new Pods 
+↓ 
+ kubectl rollout status  confirms whether the rollout is complete.

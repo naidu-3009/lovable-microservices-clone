@@ -1,5 +1,8 @@
 name: Deploy Account Service
 
+
+#so the below block says if any one of file in below paths are changed start this workflow(which is mentioned in jobs part) and as common library has
+#security related things we kept that too along with dependencies and account service
 on:
   push:
     branches:
@@ -8,6 +11,9 @@ on:
       - 'account-service/**'
       - 'common-library/**'
       - 'pom.xml'
+
+
+# These are variables used throughout the workflow
 env:
   SERVICE_NAME: account-service
   IMAGE_NAME: nishanthtalari/lovable-account-service
@@ -16,6 +22,8 @@ permissions:
   id-token: write
   contents: read
 
+#see each job is run on a single VM provided by GIthub only
+#and we can choose our OS and wht commands to run there on that vm
 jobs:
   build-and-deploy:
     name: Build, Push, and Deploy to GKE
@@ -23,7 +31,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 #this is just path for github actions source code kinda
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
